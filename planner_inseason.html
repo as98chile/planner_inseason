@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AS98 — Planner Inseason 2026</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', Arial, sans-serif; background: #eef0f3; font-size: 12px; color: #1a1a1a; }
+
+/* ── Summary Bar ── */
+#bar {
+  position: sticky; top: 0; z-index: 300;
+  background: #0d1b2a; color: #fff;
+  padding: 0 18px;
+  display: flex; flex-direction: column;
+  box-shadow: 0 3px 10px rgba(0,0,0,.4);
+}
+#bar-top {
+  display: flex; align-items: center; gap: 0; flex-wrap: nowrap;
+  padding: 7px 0 4px; border-bottom: 1px solid #1e3047;
+}
+#bar-bot {
+  display: flex; align-items: center; gap: 0;
+  padding: 4px 0 6px;
+}
+.brand { font-size: 14px; font-weight: 800; color: #ffd700; letter-spacing: 1px; margin-right: 16px; white-space: nowrap; }
+.sep   { width: 1px; height: 28px; background: #2e4057; margin: 0 12px; flex-shrink: 0; }
+.kpi   { display: flex; flex-direction: column; align-items: center; min-width: 72px; }
+.kpi .lbl { font-size: 8.5px; text-transform: uppercase; color: #8899aa; letter-spacing: .4px; white-space: nowrap; }
+.kpi .val { font-size: 15px; font-weight: 700; line-height: 1.2; white-space: nowrap; }
+.val.green  { color: #4caf50; }
+.val.blue   { color: #64b5f6; }
+.val.yellow { color: #ffd700; }
+.val.orange { color: #ff9800; }
+.val.red    { color: #ef5350; }
+.val.white  { color: #fff; }
+.val.gray   { color: #888; }
+.val.teal   { color: #4dd0e1; }
+
+/* tier pills in bar */
+.tier-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 2px 10px 2px 8px; border-radius: 12px;
+  font-size: 10px; font-weight: 700; margin-right: 5px;
+  border: 1px solid transparent;
+}
+.tp-sd { background: #1a237e; border-color: #5c6bc0; color: #c5cae9; }
+.tp-50 { background: #4a0072; border-color: #ce93d8; color: #f3e5f5; }
+.tp-40 { background: #880e4f; border-color: #f06292; color: #fce4ec; }
+.tp-30 { background: #b71c1c; border-color: #ef5350; color: #ffcdd2; }
+.tp-20 { background: #bf360c; border-color: #ff7043; color: #ffe0b2; }
+.tp-15 { background: #0d47a1; border-color: #42a5f5; color: #bbdefb; }
+.tp-10 { background: #4a148c; border-color: #ab47bc; color: #e1bee7; }
+
+/* ── Filter bar ── */
+#fbar {
+  position: sticky; top: 82px; z-index: 200;
+  background: #fff; border-bottom: 2px solid #dde2e8;
+  padding: 7px 18px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+}
+#fbar label { font-size: 11px; font-weight: 600; color: #444; white-space: nowrap; }
+#fbar select, #fbar input[type="text"] {
+  padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 11px; background: #fff;
+}
+#search { width: 170px; }
+.btn { padding: 5px 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.btn-dark   { background: #0d1b2a; color: #fff; }
+.btn-green  { background: #2e7d32; color: #fff; }
+.btn-orange { background: #e65100; color: #fff; }
+.btn-teal   { background: #00695c; color: #fff; }
+
+/* ── Table wrapper ── */
+#wrap { overflow: auto; height: calc(100vh - 122px); }
+table { width: 100%; border-collapse: collapse; min-width: 2200px; }
+
+/* Section headers */
+thead tr.sh th {
+  background: #37474f; color: #cfd8dc;
+  font-size: 9px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .5px; padding: 3px 6px;
+  border-right: 1px solid #455a64;
+}
+thead tr.sh th.wk-hdr { background: #004d40; color: #b2dfdb; }
+thead tr.sh th.pl-hdr { background: #1a237e; color: #c5cae9; }
+thead tr.sh th.pr-hdr { background: #212121; color: #bbb; }
+
+thead tr.ch th {
+  background: #1e2d3d; color: #d8e4f0;
+  padding: 5px 5px; text-align: center;
+  font-size: 10px; font-weight: 600; white-space: nowrap;
+  border-right: 1px solid #2e4057;
+  position: sticky; top: 0; z-index: 100;
+}
+thead tr.ch th.l { text-align: left; }
+th.wk-col  { background: #00332a !important; }
+th.pl-col  { background: #1a2a6e !important; }
+th.pr-col  { background: #1a1a1a !important; }
+td.wk-col  { background: rgba(0,77,64,.04); }
+td.pl-col  { background: rgba(26,35,126,.04); }
+
+tbody tr { border-bottom: 1px solid #e4e8ed; }
+tbody tr:hover td { filter: brightness(.95); }
+td { padding: 4px 5px; text-align: center; vertical-align: middle; white-space: nowrap; }
+td.l { text-align: left; }
+td.name { font-weight: 600; font-size: 11px; overflow: hidden; text-overflow: ellipsis; max-width: 195px; }
+td.tipo { color: #666; font-size: 10px; text-transform: capitalize; }
+
+/* ── Sticky first 3 columns ── */
+.col-prod, .col-tipo, .col-stk {
+  position: sticky; z-index: 10;
+}
+th.col-prod, th.col-tipo, th.col-stk {
+  z-index: 50;
+}
+.col-prod { left: 0;    min-width: 200px; max-width: 200px; }
+.col-tipo { left: 200px; min-width: 80px; max-width: 80px; }
+.col-stk  { left: 280px; min-width: 48px; max-width: 48px; box-shadow: 3px 0 6px rgba(0,0,0,.15); }
+
+/* Background per row type so sticky cells don't bleed */
+tr.t0   .col-prod, tr.t0   .col-tipo, tr.t0   .col-stk  { background: #fafafa; }
+tr.tsd  .col-prod, tr.tsd  .col-tipo, tr.tsd  .col-stk  { background: #f8f8ff; }
+tr.t10  .col-prod, tr.t10  .col-tipo, tr.t10  .col-stk  { background: #f6f1ff; }
+tr.t15  .col-prod, tr.t15  .col-tipo, tr.t15  .col-stk  { background: #f0f7ff; }
+tr.t20  .col-prod, tr.t20  .col-tipo, tr.t20  .col-stk  { background: #fff8f0; }
+tr.t30  .col-prod, tr.t30  .col-tipo, tr.t30  .col-stk  { background: #fff1f1; }
+tr.t40  .col-prod, tr.t40  .col-tipo, tr.t40  .col-stk  { background: #fce4ec; }
+tr.t50  .col-prod, tr.t50  .col-tipo, tr.t50  .col-stk  { background: #f3e5f5; }
+tr.ghdr .col-prod, tr.ghdr .col-tipo, tr.ghdr .col-stk  { background: #2c3e50; }
+tr.gsubt .col-prod, tr.gsubt .col-tipo, tr.gsubt .col-stk { background: #1b2e1b; }
+tfoot tr .col-prod, tfoot tr .col-tipo, tfoot tr .col-stk { background: #0d1b2a; }
+tbody tr:hover .col-prod, tbody tr:hover .col-tipo, tbody tr:hover .col-stk { filter: brightness(.95); }
+
+/* Row tints */
+tr.t50  { background: #f3e5f5; }
+tr.t40  { background: #fce4ec; }
+tr.t30  { background: #fff1f1; }
+tr.t20  { background: #fff8f0; }
+tr.t15  { background: #f0f7ff; }
+tr.t10  { background: #f6f1ff; }
+tr.tsd  { background: #f8f8ff; }
+tr.t0   { background: #fafafa; }
+
+/* Badges */
+.badge { display: inline-block; padding: 2px 7px; border-radius: 9px; font-size: 10px; font-weight: 700; }
+.b-sd  { background: #c5cae9; color: #283593; }
+.b-50  { background: #f3e5f5; color: #4a0072; }
+.b-40  { background: #fce4ec; color: #880e4f; }
+.b-30  { background: #ffcdd2; color: #b71c1c; }
+.b-20  { background: #ffe0b2; color: #bf360c; }
+.b-15  { background: #bbdefb; color: #0d47a1; }
+.b-10  { background: #e1bee7; color: #4a148c; }
+.b-0   { background: #eeeeee; color: #777; }
+
+/* Discount actual badge */
+.dcto-badge {
+  display: inline-block; padding: 1px 6px; border-radius: 8px;
+  font-size: 10px; font-weight: 700;
+  background: #fff3e0; color: #e65100;
+}
+.dcto-none { color: #bbb; font-size: 10px; }
+
+/* Inputs */
+select.tsel {
+  padding: 3px 4px; border: 1px solid #bbb; border-radius: 4px;
+  font-size: 11px; width: 96px; cursor: pointer; background: #fff;
+}
+input.sti {
+  width: 50px; padding: 3px 3px; border: 1px solid #bbb; border-radius: 4px;
+  font-size: 11px; text-align: center; background: #fff;
+}
+input.sti:disabled { background: #f0f0f0; color: #aaa; cursor: not-allowed; }
+input.sti:focus    { outline: none; border-color: #1976d2; }
+
+/* Values */
+.rev   { color: #1565c0; font-weight: 700; }
+.mgn   { color: #2e7d32; font-weight: 700; }
+.dash  { color: #ccc; }
+.nocost { color: #bbb; font-size: 10px; }
+.warn  { color: #e53935; font-weight: 700; }
+.low   { color: #e53935; }
+.mid   { color: #f57c00; }
+.good  { color: #2e7d32; }
+.small { font-size: 10px; color: #999; }
+.wk-val { color: #00695c; font-weight: 600; }
+
+/* Group header */
+tr.ghdr td {
+  background: #2c3e50; color: #ecf0f1;
+  font-size: 10px; font-weight: 700; padding: 4px 10px;
+  letter-spacing: .3px; text-align: left;
+}
+/* Subtotal por tipo */
+tr.gsubt td {
+  background: #1b2e1b; color: #a5d6a7;
+  font-size: 10px; font-weight: 700; padding: 3px 5px;
+  border-top: 1px solid #2e7d32;
+}
+tr.gsubt td.wk-sub { color: #80cbc4; text-align: center; }
+tr.gsubt td.lbl-sub { text-align: left; padding-left: 10px; color: #fff; }
+
+/* Footer */
+tfoot td {
+  background: #0d1b2a; color: #fff;
+  font-weight: 700; padding: 6px 5px;
+  border-top: 2px solid #ffd700;
+  font-size: 11px; text-align: center;
+}
+tfoot td.l { text-align: left; }
+</style>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+
+<!-- ── Summary Bar ── -->
+<div id="bar">
+  <div id="bar-top">
+    <span class="brand">AS98 ✦ INSEASON 2026</span>
+    <div class="sep"></div>
+    <div class="kpi"><span class="lbl">Rev. Semana</span><span class="val green" id="s-rev">$0</span></div>
+    <div class="kpi"><span class="lbl">Margen $</span><span class="val yellow" id="s-mgn">$0</span></div>
+    <div class="kpi"><span class="lbl">Margen %</span><span class="val orange" id="s-mp">0%</span></div>
+    <div class="kpi"><span class="lbl">Uds Semana</span><span class="val white" id="s-u">0</span></div>
+    <div class="sep"></div>
+    <div class="kpi"><span class="lbl">Semana actual</span><span class="val teal" id="s-week">S—</span></div>
+    <div class="sep"></div>
+    <div style="display:flex;flex-direction:column;gap:3px;justify-content:center;font-size:9.5px;color:#aab;line-height:1.4">
+      <span>📦 Stock: <b style="color:#fff">01/06/2026</b></span>
+      <span>📊 Ventas: <b style="color:#fff">31/05/2026 20:00</b></span>
+      <span>✏️ Último dato: <b style="color:#ffd700" id="last-edit-ts">—</b></span>
+    </div>
+  </div>
+  <div id="bar-bot">
+    <span style="font-size:9px;color:#556;margin-right:10px;text-transform:uppercase;letter-spacing:.5px">Por tier:</span>
+    <span id="s-sd"  class="tier-pill tp-sd">Sin Dcto — $0 | 0u</span>
+    <span id="s-50"  class="tier-pill tp-50">50% — $0 | 0u</span>
+    <span id="s-40"  class="tier-pill tp-40">40% — $0 | 0u</span>
+    <span id="s-30"  class="tier-pill tp-30">30% — $0 | 0u</span>
+    <span id="s-20"  class="tier-pill tp-20">20% — $0 | 0u</span>
+    <span id="s-15"  class="tier-pill tp-15">15% — $0 | 0u</span>
+    <span id="s-10"  class="tier-pill tp-10">10% — $0 | 0u</span>
+  </div>
+</div>
+
+<!-- ── Filter bar ── -->
+<div id="fbar">
+  <label>Buscar:</label>
+  <input type="text" id="search" placeholder="Nombre del producto..." oninput="applyFilters()">
+  <label>Tipo:</label>
+  <select id="ftipo" onchange="applyFilters()"><option value="">Todos</option></select>
+  <label>Tier:</label>
+  <select id="ftier" onchange="applyFilters()">
+    <option value="">Todos</option>
+    <option value="0">Sin asignar</option>
+    <option value="sd">Sin Descuento</option>
+    <option value="10">10%</option>
+    <option value="15">15%</option>
+    <option value="20">20%</option>
+    <option value="30">30%</option>
+    <option value="40">40%</option>
+    <option value="50">50%</option>
+  </select>
+  <label>Stock mín:</label>
+  <input type="text" id="fstock" placeholder="ej: 5" style="width:55px" oninput="applyFilters()">
+  <label>Dcto actual:</label>
+  <select id="fdcto" onchange="applyFilters()">
+    <option value="">Todos</option>
+    <option value="nodcto">Sin descuento</option>
+    <option value="condcto">Con descuento</option>
+  </select>
+  <button class="btn btn-orange" onclick="bulkST()">ST% masivo...</button>
+  <button class="btn btn-dark"   onclick="clearAll()">Limpiar todo</button>
+  <button class="btn btn-green"  onclick="exportCSV()">Exportar CSV</button>
+  <button class="btn btn-teal"   onclick="exportXLSX()">Excel Descuentos</button>
+</div>
+
+<!-- ── Table ── -->
+<div id="wrap">
+<table id="tbl">
+<thead id="thead-top">
+  <!-- Section labels — built dynamically in JS -->
+</thead>
+<tbody id="tbody"></tbody>
+<tfoot>
+  <tr id="ftrow">
+    <!-- built dynamically -->
+  </tr>
+</tfoot>
+</table>
+</div>
+
+<script>
+const RAW       = [{"title":"Cliff Legno","tipo":"Anteojos","skus":"H030011016041","stock":1,"precioPubl":89990,"precioNeto":75622,"costoNeto":37593,"margenPct":50.3,"maxDcto":0,"precioActual":89990,"dctoActual":0,"mgActual":50.3,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"Cliff Negro","tipo":"Anteojos","skus":"H030011016002","stock":1,"precioPubl":89990,"precioNeto":75622,"costoNeto":37593,"margenPct":50.3,"maxDcto":0,"precioActual":89990,"dctoActual":0,"mgActual":50.3,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"Dahlia Negro *UNISEX*","tipo":"Anteojos","skus":"H030021016002","stock":2,"precioPubl":89990,"precioNeto":75622,"costoNeto":37593,"margenPct":50.3,"maxDcto":0,"precioActual":89990,"dctoActual":0,"mgActual":50.3,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"Kirk Havana *UNISEX*","tipo":"Anteojos","skus":"H030071016325","stock":3,"precioPubl":89990,"precioNeto":75622,"costoNeto":34460,"margenPct":54.4,"maxDcto":7.6,"precioActual":89990,"dctoActual":0,"mgActual":54.4,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"Kirk Negro *UNISEX*","tipo":"Anteojos","skus":"H030071016002","stock":2,"precioPubl":89990,"precioNeto":75622,"costoNeto":34460,"margenPct":54.4,"maxDcto":7.6,"precioActual":89990,"dctoActual":0,"mgActual":54.4,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"Lars Havana*UNISEX*","tipo":"Anteojos","skus":"H030061016325","stock":2,"precioPubl":89990,"precioNeto":75622,"costoNeto":0,"margenPct":null,"maxDcto":0,"precioActual":89990,"dctoActual":0,"mgActual":null,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"Nicko Havana*UNISEX*","tipo":"Anteojos","skus":"H030051016325","stock":2,"precioPubl":89990,"precioNeto":75622,"costoNeto":34460,"margenPct":54.4,"maxDcto":7.6,"precioActual":89990,"dctoActual":0,"mgActual":54.4,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"Rob Havana *UNISEX*","tipo":"Anteojos","skus":"H030081016325","stock":3,"precioPubl":79990,"precioNeto":67218,"costoNeto":0,"margenPct":null,"maxDcto":0,"precioActual":79990,"dctoActual":0,"mgActual":null,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"Ronnie Negro *UNISEX*","tipo":"Anteojos","skus":"H030031016002","stock":1,"precioPubl":89990,"precioNeto":75622,"costoNeto":37593,"margenPct":50.3,"maxDcto":0,"precioActual":89990,"dctoActual":0,"mgActual":50.3,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"Tate Translucido *UNISEX*","tipo":"Anteojos","skus":"H030131016203","stock":2,"precioPubl":89990,"precioNeto":75622,"costoNeto":0,"margenPct":null,"maxDcto":0,"precioActual":89990,"dctoActual":0,"mgActual":null,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"Taylor Negro *UNISEX*","tipo":"Anteojos","skus":"H030091016002","stock":2,"precioPubl":89990,"precioNeto":75622,"costoNeto":40726,"margenPct":46.1,"maxDcto":0,"precioActual":89990,"dctoActual":0,"mgActual":46.1,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"Taylor Oro *UNISEX*","tipo":"Anteojos","skus":"H030091016102","stock":2,"precioPubl":89990,"precioNeto":75622,"costoNeto":40726,"margenPct":46.1,"maxDcto":0,"precioActual":89990,"dctoActual":0,"mgActual":46.1,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"Till Havana","tipo":"Anteojos","skus":"H030041016325","stock":2,"precioPubl":89990,"precioNeto":75622,"costoNeto":0,"margenPct":null,"maxDcto":0,"precioActual":89990,"dctoActual":0,"mgActual":null,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"Till Negro","tipo":"Anteojos","skus":"H030041016002","stock":2,"precioPubl":89990,"precioNeto":75622,"costoNeto":34460,"margenPct":54.4,"maxDcto":7.6,"precioActual":89990,"dctoActual":0,"mgActual":54.4,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"Etta Emerald","tipo":"Billetera","skus":"10102921026915","stock":1,"precioPubl":129990,"precioNeto":109235,"costoNeto":51400,"margenPct":52.9,"maxDcto":4.6,"precioActual":129990,"dctoActual":0,"mgActual":52.9,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"Etta Nero","tipo":"Billetera","skus":"10102921026002","stock":2,"precioPubl":129990,"precioNeto":109235,"costoNeto":51400,"margenPct":52.9,"maxDcto":4.6,"precioActual":129990,"dctoActual":0,"mgActual":52.9,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"BOTA ADDISON FONDENTE","tipo":"Botas","skus":"B80310102000236, B80310102000237, B80310102000238, B80310102000239, B80310102000240","stock":19,"precioPubl":389990,"precioNeto":327723,"costoNeto":138121,"margenPct":57.9,"maxDcto":14.5,"precioActual":350990,"dctoActual":10,"mgActual":53.2,"weekSales":{"S11":0,"S12":0,"S13":1,"S14":0,"S15":2,"S16":0,"S17":0,"S18":0,"S19":1,"S20":0,"S21":0,"S22":1},"tier":0,"st":0},{"title":"BOTA ADDISON NEGRO","tipo":"Botas","skus":"B80310102000136, B80310102000137, B80310102000138, B80310102000139, B80310102000140","stock":12,"precioPubl":389990,"precioNeto":327723,"costoNeto":139950,"margenPct":57.3,"maxDcto":13.4,"precioActual":350990,"dctoActual":10,"mgActual":52.6,"weekSales":{"S11":1,"S12":0,"S13":1,"S14":0,"S15":0,"S16":0,"S17":1,"S18":0,"S19":1,"S20":0,"S21":1,"S22":1},"tier":0,"st":0},{"title":"BOTA AIR CAFE","tipo":"Botas","skus":"A52308101000735, A52308101000736, A52308101000737, A52308101000738, A52308101000739, A52308101000740, A52308101000741","stock":14,"precioPubl":289990,"precioNeto":243689,"costoNeto":106954,"margenPct":56.1,"maxDcto":11,"precioActual":289990,"dctoActual":0,"mgActual":56.1,"weekSales":{"S11":0,"S12":1,"S13":2,"S14":1,"S15":1,"S16":1,"S17":2,"S18":1,"S19":2,"S20":1,"S21":1,"S22":4},"tier":0,"st":0},{"title":"BOTA AIR NEGRO","tipo":"Botas","skus":"A52308101600236, A52308101600237, A52308101600238, A52308101600239, A52308101600240","stock":30,"precioPubl":289990,"precioNeto":243689,"costoNeto":105347,"margenPct":56.8,"maxDcto":12.3,"precioActual":260990,"dctoActual":10,"mgActual":52,"weekSales":{"S11":3,"S12":2,"S13":3,"S14":2,"S15":2,"S16":1,"S17":2,"S18":1,"S19":2,"S20":2,"S21":4,"S22":8},"tier":0,"st":0},{"title":"BOTA AXEL NEGRO","tipo":"Botas","skus":"545310101600235, 545310101600236, 545310101600237, 545310101600238, 545310101600239, 545310101600240, 545310101600241","stock":6,"precioPubl":319990,"precioNeto":268899,"costoNeto":121745,"margenPct":54.7,"maxDcto":8.2,"precioActual":319990,"dctoActual":0,"mgActual":54.7,"weekSales":{"S11":1,"S12":2,"S13":0,"S14":5,"S15":0,"S16":1,"S17":0,"S18":0,"S19":0,"S20":2,"S21":0,"S22":0},"tier":0,"st":0},{"title":"BOTA BASKA EBANO","tipo":"Botas","skus":"B80336201614436, B80336201614437, B80336201614438, B80336201614439, B80336201614440","stock":17,"precioPubl":409990,"precioNeto":344529,"costoNeto":141088,"margenPct":59,"maxDcto":16.9,"precioActual":368990,"dctoActual":10,"mgActual":54.5,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":1,"S17":0,"S18":0,"S19":0,"S20":1,"S21":0,"S22":0},"tier":0,"st":0},{"title":"BOTA BASKA NEGRO","tipo":"Botas","skus":"B80336201600236, B80336201600237, B80336201600238, B80336201600239, B80336201600240","stock":10,"precioPubl":409990,"precioNeto":344529,"costoNeto":141088,"margenPct":59,"maxDcto":16.9,"precioActual":368990,"dctoActual":10,"mgActual":54.5,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":3,"S17":0,"S18":0,"S19":0,"S20":2,"S21":1,"S22":3},"tier":0,"st":0},{"title":"BOTA BUCA CAFE","tipo":"Botas","skus":"717356502000336, 717356502000337, 717356502000338, 717356502000339, 717356502000340, 717356502000341","stock":10,"precioPubl":389990,"precioNeto":327723,"costoNeto":150238,"margenPct":54.2,"maxDcto":7,"precioActual":389990,"dctoActual":0,"mgActual":54.2,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":2,"S16":0,"S17":0,"S18":0,"S19":0,"S20":2,"S21":0,"S22":2},"tier":0,"st":0},{"title":"BOTA BUCA FONDENTE","tipo":"Botas","skus":"717356602000135, 717356602000136, 717356602000137, 717356602000138, 717356602000139, 717356602000140","stock":21,"precioPubl":389990,"precioNeto":327723,"costoNeto":153888,"margenPct":53,"maxDcto":4.8,"precioActual":350990,"dctoActual":10,"mgActual":47.8,"weekSales":{"S11":4,"S12":2,"S13":1,"S14":3,"S15":0,"S16":0,"S17":0,"S18":0,"S19":2,"S20":2,"S21":3,"S22":9},"tier":0,"st":0},{"title":"BOTA BUCA NEGRO","tipo":"Botas","skus":"717356502600236, 717356502600237, 717356502600238, 717356502600239, 717356502600240","stock":15,"precioPubl":389990,"precioNeto":327723,"costoNeto":156918,"margenPct":52.1,"maxDcto":2.9,"precioActual":350990,"dctoActual":10,"mgActual":46.8,"weekSales":{"S11":3,"S12":3,"S13":3,"S14":3,"S15":1,"S16":0,"S17":3,"S18":2,"S19":3,"S20":0,"S21":1,"S22":3},"tier":0,"st":0},{"title":"BOTA CAMBRIA EBANO","tipo":"Botas","skus":"B843011026144I2536, B843011026144I2537, B843011026144I2538, B843011026144I2539, B843011026144I2540","stock":11,"precioPubl":389990,"precioNeto":327723,"costoNeto":136537,"margenPct":58.3,"maxDcto":15.5,"precioActual":389990,"dctoActual":0,"mgActual":58.3,"weekSales":{"S11":0,"S12":1,"S13":2,"S14":1,"S15":2,"S16":0,"S17":0,"S18":2,"S19":1,"S20":1,"S21":2,"S22":0},"tier":0,"st":0},{"title":"BOTA CAMBRIA NEGRO","tipo":"Botas","skus":"B84301101600236, B84301101600237, B84301101600238, B84301101600239, B84301101600240","stock":3,"precioPubl":389990,"precioNeto":327723,"costoNeto":136537,"margenPct":58.3,"maxDcto":15.5,"precioActual":389990,"dctoActual":0,"mgActual":58.3,"weekSales":{"S11":0,"S12":4,"S13":3,"S14":0,"S15":3,"S16":0,"S17":2,"S18":2,"S19":1,"S20":0,"S21":0,"S22":2},"tier":0,"st":0},{"title":"BOTA DC DAINO","tipo":"Botas","skus":"256301101000336, 256301101000337, 256301101000338, 256301101000339, 256301101000340","stock":14,"precioPubl":319990,"precioNeto":268899,"costoNeto":116651,"margenPct":56.6,"maxDcto":12,"precioActual":319990,"dctoActual":0,"mgActual":56.6,"weekSales":{"S11":0,"S12":0,"S13":2,"S14":3,"S15":0,"S16":0,"S17":0,"S18":0,"S19":1,"S20":0,"S21":1,"S22":1},"tier":0,"st":0},{"title":"BOTA DC EBANO","tipo":"Botas","skus":"256301101001436, 256301101001437, 256301101001438, 256301101001439, 256301101001440","stock":9,"precioPubl":319990,"precioNeto":268899,"costoNeto":119470,"margenPct":55.6,"maxDcto":9.9,"precioActual":287990,"dctoActual":10,"mgActual":50.6,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"BOTA DC NEGRO","tipo":"Botas","skus":"256301101600236, 256301101600237, 256301101600238, 256301101600239, 256301101600240","stock":11,"precioPubl":319990,"precioNeto":268899,"costoNeto":117356,"margenPct":56.4,"maxDcto":11.5,"precioActual":287990,"dctoActual":10,"mgActual":51.5,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":2,"S15":0,"S16":1,"S17":0,"S18":1,"S19":0,"S20":0,"S21":1,"S22":3},"tier":0,"st":0},{"title":"BOTA DIRE EBANO","tipo":"Botas","skus":"A89307501614436, A89307501614437, A89307501614438, A89307501614439, A89307501614440","stock":12,"precioPubl":369990,"precioNeto":310916,"costoNeto":138812,"margenPct":55.4,"maxDcto":9.4,"precioActual":332990,"dctoActual":10,"mgActual":50.4,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":1,"S18":0,"S19":0,"S20":0,"S21":0,"S22":3},"tier":0,"st":0},{"title":"BOTA DIRE NEGRO","tipo":"Botas","skus":"A89307501600236, A89307501600237, A89307501600238, A89307501600239, A89307501600240","stock":17,"precioPubl":369990,"precioNeto":310916,"costoNeto":133561,"margenPct":57,"maxDcto":12.9,"precioActual":332990,"dctoActual":10,"mgActual":52.3,"weekSales":{"S11":1,"S12":1,"S13":0,"S14":0,"S15":1,"S16":1,"S17":0,"S18":0,"S19":0,"S20":0,"S21":1,"S22":4},"tier":0,"st":0},{"title":"BOTA DUBLIN NEGRO (MJUS by AS98)","tipo":"Botas","skus":"T82301103600236, T82301103600237, T82301103600238, T82301103600239, T82301103600240","stock":19,"precioPubl":209990,"precioNeto":176462,"costoNeto":71189,"margenPct":59.7,"maxDcto":18.2,"precioActual":188990,"dctoActual":10,"mgActual":55.2,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":1,"S18":1,"S19":1,"S20":0,"S21":0,"S22":1},"tier":0,"st":0},{"title":"BOTA DUBLIN TDM (MJUS by AS98)","tipo":"Botas","skus":"T82301103625336, T82301103625337, T82301103625338, T82301103625339, T82301103625340","stock":4,"precioPubl":209990,"precioNeto":176462,"costoNeto":68113,"margenPct":61.4,"maxDcto":21.7,"precioActual":209990,"dctoActual":0,"mgActual":61.4,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":2,"S18":0,"S19":2,"S20":3,"S21":2,"S22":1},"tier":0,"st":0},{"title":"BOTA MARKS CAFÉ (MJUS by AS98)","tipo":"Botas","skus":"L91203201611636, L91203201611637, L91203201611638, L91203201611639, L91203201611640","stock":13,"precioPubl":219990,"precioNeto":184866,"costoNeto":73886,"margenPct":60,"maxDcto":18.9,"precioActual":175990,"dctoActual":20,"mgActual":50,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":2},"tier":0,"st":0},{"title":"BOTA RIO CAFE (MJUS by AS98)","tipo":"Botas","skus":"L39303101611636, L39303101611637, L39303101611638, L39303101611639, L39303101611640","stock":14,"precioPubl":239990,"precioNeto":201672,"costoNeto":77222,"margenPct":61.7,"maxDcto":22.3,"precioActual":239990,"dctoActual":0,"mgActual":61.7,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":1,"S15":1,"S16":2,"S17":2,"S18":0,"S19":1,"S20":1,"S21":2,"S22":0},"tier":0,"st":0},{"title":"BOTA RIO NEGRO (MJUS by AS98)","tipo":"Botas","skus":"L39303101600236, L39303101600237, L39303101600238, L39303101600239, L39303101600240","stock":27,"precioPubl":239990,"precioNeto":201672,"costoNeto":73011,"margenPct":63.8,"maxDcto":26.6,"precioActual":215990,"dctoActual":10,"mgActual":59.8,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":1,"S17":0,"S18":0,"S19":0,"S20":1,"S21":0,"S22":0},"tier":0,"st":0},{"title":"BOTA UMBRIA NERO (MJUS by AS98)","tipo":"Botas","skus":"L39304101600236, L39304101600237, L39304101600238, L39304101600239, L39304101600240","stock":17,"precioPubl":249990,"precioNeto":210076,"costoNeto":90048,"margenPct":57.1,"maxDcto":13.1,"precioActual":199990,"dctoActual":20,"mgActual":46.4,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"BOTA VAN METAL","tipo":"Botas","skus":"B52308101000135, B52308101000136, B52308101000137, B52308101000138, B52308101000139, B52308101000140","stock":2,"precioPubl":329990,"precioNeto":277303,"costoNeto":117729,"margenPct":57.5,"maxDcto":13.9,"precioActual":197990,"dctoActual":40,"mgActual":29.2,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":2,"S16":0,"S17":1,"S18":1,"S19":0,"S20":0,"S21":0,"S22":1},"tier":0,"st":0},{"title":"BOTA WESTERN NEGRO","tipo":"Botas","skus":"B842152010001I2536, B842152010001I2537, B842152010001I2538, B842152010001I2539, B842152010001I2540","stock":9,"precioPubl":349990,"precioNeto":294109,"costoNeto":119470,"margenPct":59.4,"maxDcto":17.6,"precioActual":349990,"dctoActual":0,"mgActual":59.4,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":1,"S16":0,"S17":2,"S18":1,"S19":1,"S20":1,"S21":0,"S22":1},"tier":0,"st":0},{"title":"BOTA WESTERN PRUNE","tipo":"Botas","skus":"B842151016565I2536, B842151016565I2537, B842151016565I2538, B842151016565I2539, B842151016565I2540","stock":11,"precioPubl":349990,"precioNeto":294109,"costoNeto":122883,"margenPct":58.2,"maxDcto":15.3,"precioActual":349990,"dctoActual":0,"mgActual":58.2,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":1,"S16":0,"S17":2,"S18":0,"S19":0,"S20":0,"S21":0,"S22":1},"tier":0,"st":0},{"title":"BOTA ZADAR EBANO","tipo":"Botas","skus":"C14305101614436, C14305101614437, C14305101614438, C14305101614439, C14305101614440","stock":14,"precioPubl":379990,"precioNeto":319319,"costoNeto":126296,"margenPct":60.4,"maxDcto":19.8,"precioActual":341990,"dctoActual":10,"mgActual":56.1,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":1,"S17":0,"S18":0,"S19":0,"S20":0,"S21":1,"S22":0},"tier":0,"st":0},{"title":"BOTA ZADAR MADERA","tipo":"Botas","skus":"C14305101658036, C14305101658037, C14305101658038, C14305101658039, C14305101658040","stock":10,"precioPubl":379990,"precioNeto":319319,"costoNeto":126296,"margenPct":60.4,"maxDcto":19.8,"precioActual":379990,"dctoActual":0,"mgActual":60.4,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":1,"S17":1,"S18":3,"S19":0,"S20":0,"S21":0,"S22":1},"tier":0,"st":0},{"title":"BOTA ZADAR NEGRO","tipo":"Botas","skus":"C14305101600236, C14305101600237, C14305101600238, C14305101600239, C14305101600240","stock":13,"precioPubl":379990,"precioNeto":319319,"costoNeto":126296,"margenPct":60.4,"maxDcto":19.8,"precioActual":341990,"dctoActual":10,"mgActual":56.1,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":1,"S16":0,"S17":1,"S18":0,"S19":0,"S20":0,"S21":1,"S22":0},"tier":0,"st":0},{"title":"BOTIN MARKS COCO (MJUS by AS98)","tipo":"Botas","skus":"L91203201653636, L91203201653637, L91203201653638, L91203201653639, L91203201653640","stock":14,"precioPubl":219990,"precioNeto":184866,"costoNeto":71577,"margenPct":61.3,"maxDcto":21.5,"precioActual":175990,"dctoActual":20,"mgActual":51.6,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":1,"S17":0,"S18":0,"S19":0,"S20":1,"S21":0,"S22":1},"tier":0,"st":0},{"title":"BOTIN ALISA NEGRO","tipo":"Botines","skus":"B80216101600235, B80216101600236, B80216101600237, B80216101600238, B80216101600239, B80216101600240","stock":2,"precioPubl":239990,"precioNeto":201672,"costoNeto":76671,"margenPct":62,"maxDcto":22.9,"precioActual":167990,"dctoActual":30,"mgActual":45.7,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"BOTIN ALIVE CAFE OSCURO","tipo":"Botines","skus":"A29201101000535, A29201101000536, A29201101000537, A29201101000538, A29201101000539, A29201101000540","stock":1,"precioPubl":219990,"precioNeto":184866,"costoNeto":67695,"margenPct":63.4,"maxDcto":25.7,"precioActual":175990,"dctoActual":20,"mgActual":54.2,"weekSales":{"S11":0,"S12":0,"S13":1,"S14":1,"S15":0,"S16":0,"S17":0,"S18":1,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"BOTIN ALIVE NEGRO","tipo":"Botines","skus":"A29201101600235, A29201101600236, A29201101600237, A29201101600238, A29201101600239, A29201101600240, A29201101600241","stock":12,"precioPubl":219990,"precioNeto":184866,"costoNeto":68125,"margenPct":63.1,"maxDcto":25.3,"precioActual":197990,"dctoActual":10,"mgActual":59.1,"weekSales":{"S11":1,"S12":0,"S13":3,"S14":2,"S15":0,"S16":0,"S17":0,"S18":1,"S19":0,"S20":1,"S21":0,"S22":1},"tier":0,"st":0},{"title":"BOTIN ALLY NEGRO","tipo":"Botines","skus":"B80215101600236, B80215101600237, B80215101600238, B80215101600239, B80215101600240, B80215101600241","stock":5,"precioPubl":249990,"precioNeto":210076,"costoNeto":87414,"margenPct":58.4,"maxDcto":15.6,"precioActual":199990,"dctoActual":20,"mgActual":48,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"BOTIN ARCH CARTÓN","tipo":"Botines","skus":"B80227203000436, B80227203000437, B80227203000438, B80227203000439, B80227203000440","stock":6,"precioPubl":339990,"precioNeto":285706,"costoNeto":130848,"margenPct":54.2,"maxDcto":7.1,"precioActual":339990,"dctoActual":0,"mgActual":54.2,"weekSales":{"S11":1,"S12":1,"S13":1,"S14":2,"S15":0,"S16":0,"S17":0,"S18":1,"S19":1,"S20":1,"S21":0,"S22":0},"tier":0,"st":0},{"title":"BOTIN ARCH FONDENTE","tipo":"Botines","skus":"B80227202000236, B80227202000237, B80227202000238, B80227202000239, B80227202000240","stock":7,"precioPubl":339990,"precioNeto":285706,"costoNeto":131074,"margenPct":54.1,"maxDcto":6.9,"precioActual":339990,"dctoActual":0,"mgActual":54.1,"weekSales":{"S11":1,"S12":0,"S13":2,"S14":1,"S15":1,"S16":2,"S17":1,"S18":2,"S19":0,"S20":1,"S21":1,"S22":1},"tier":0,"st":0},{"title":"BOTIN ARCH NEGRO","tipo":"Botines","skus":"B80227202600236, B80227202600237, B80227202600238, B80227202600239, B80227202600240","stock":23,"precioPubl":339990,"precioNeto":285706,"costoNeto":133106,"margenPct":53.4,"maxDcto":5.5,"precioActual":339990,"dctoActual":0,"mgActual":53.4,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"BOTIN ATENAS NEGRO (MJUS by AS98)","tipo":"Botines","skus":"L48201101600236, L48201101600237, L48201101600238, L48201101600239, L48201101600240","stock":14,"precioPubl":159990,"precioNeto":134445,"costoNeto":56115,"margenPct":58.3,"maxDcto":15.3,"precioActual":159990,"dctoActual":0,"mgActual":58.3,"weekSales":{"S11":0,"S12":0,"S13":2,"S14":0,"S15":1,"S16":0,"S17":1,"S18":0,"S19":0,"S20":1,"S21":2,"S22":0},"tier":0,"st":0},{"title":"BOTIN ATTALA OTTONE","tipo":"Botines","skus":"B80204201615536, B80204201615537, B80204201615538, B80204201615539, B80204201615540","stock":7,"precioPubl":299990,"precioNeto":252092,"costoNeto":107354,"margenPct":57.4,"maxDcto":13.6,"precioActual":179990,"dctoActual":40,"mgActual":29,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":1,"S16":0,"S17":1,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"BOTIN AZUSA ARGENTO","tipo":"Botines","skus":"B80206201610136, B80206201610137, B80206201610138, B80206201610139, B80206201610140","stock":1,"precioPubl":299990,"precioNeto":252092,"costoNeto":104264,"margenPct":58.6,"maxDcto":16.1,"precioActual":209990,"dctoActual":30,"mgActual":40.9,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"BOTIN BADEN ICE","tipo":"Botines","skus":"B82116101633636, B82116101633637, B82116101633638, B82116101633639, B82116101633640","stock":12,"precioPubl":209990,"precioNeto":176462,"costoNeto":72820,"margenPct":58.7,"maxDcto":16.3,"precioActual":167990,"dctoActual":20,"mgActual":48.4,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"BOTIN BERNA BASALTO","tipo":"Botines","skus":"A94131201657936, A94131201657937, A94131201657938, A94131201657939, A94131201657940","stock":12,"precioPubl":219990,"precioNeto":184866,"costoNeto":69406,"margenPct":62.5,"maxDcto":23.8,"precioActual":175990,"dctoActual":20,"mgActual":53.1,"weekSales":{"S11":0,"S12":1,"S13":1,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":3},"tier":0,"st":0},{"title":"BOTIN BERNA MADERA","tipo":"Botines","skus":"A94131101658036, A94131101658037, A94131101658038, A94131101658039, A94131101658040","stock":12,"precioPubl":219990,"precioNeto":184866,"costoNeto":72820,"margenPct":60.6,"maxDcto":20.1,"precioActual":197990,"dctoActual":10,"mgActual":56.2,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":1,"S16":0,"S17":0,"S18":0,"S19":0,"S20":1,"S21":1,"S22":0},"tier":0,"st":0},{"title":"BOTIN BILICE EBANO","tipo":"Botines","skus":"C13106201614436, C13106201614437, C13106201614438, C13106201614439, C13106201614440","stock":10,"precioPubl":199990,"precioNeto":168059,"costoNeto":70544,"margenPct":58,"maxDcto":14.9,"precioActual":179990,"dctoActual":10,"mgActual":53.4,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":1,"S16":0,"S17":2,"S18":0,"S19":0,"S20":0,"S21":0,"S22":1},"tier":0,"st":0},{"title":"BOTIN BILICE TEAL","tipo":"Botines","skus":"C13106201658236, C13106201658237, C13106201658238, C13106201658239, C13106201658240","stock":9,"precioPubl":199990,"precioNeto":168059,"costoNeto":70544,"margenPct":58,"maxDcto":14.9,"precioActual":179990,"dctoActual":10,"mgActual":53.4,"weekSales":{"S11":1,"S12":1,"S13":0,"S14":1,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":1,"S21":0,"S22":1},"tier":0,"st":0},{"title":"BOTIN BLUR GRIS","tipo":"Botines","skus":"259216302000335, 259216302000336, 259216302000337, 259216302000338, 259216302000339, 259216302000340","stock":3,"precioPubl":329990,"precioNeto":277303,"costoNeto":110246,"margenPct":60.2,"maxDcto":19.4,"precioActual":296990,"dctoActual":10,"mgActual":55.8,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"BOTIN BLUR JUNGLE","tipo":"Botines","skus":"259216302001135, 259216302001136, 259216302001137, 259216302001138, 259216302001139, 259216302001140, 259216302001141","stock":6,"precioPubl":329990,"precioNeto":277303,"costoNeto":120673,"margenPct":56.5,"maxDcto":11.7,"precioActual":296990,"dctoActual":10,"mgActual":51.6,"weekSales":{"S11":1,"S12":0,"S13":0,"S14":1,"S15":0,"S16":0,"S17":0,"S18":0,"S19":1,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"BOTIN BLUR NEGRO","tipo":"Botines","skus":"259216302600235, 259216302600236, 259216302600237, 259216302600238, 259216302600239, 259216302600240, 259216302600241","stock":47,"precioPubl":329990,"precioNeto":277303,"costoNeto":132788,"margenPct":52.1,"maxDcto":2.9,"precioActual":329990,"dctoActual":0,"mgActual":52.1,"weekSales":{"S11":0,"S12":1,"S13":4,"S14":2,"S15":1,"S16":2,"S17":1,"S18":4,"S19":3,"S20":1,"S21":4,"S22":1},"tier":0,"st":0},{"title":"BOTIN BOB CASTAÑA","tipo":"Botines","skus":"U81202101622541, U81202101622542, U81202101622543, U81202101622544, U81202101622545, U81202101622546","stock":5,"precioPubl":199990,"precioNeto":168059,"costoNeto":76000,"margenPct":54.8,"maxDcto":8.3,"precioActual":179990,"dctoActual":10,"mgActual":49.8,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"BOTIN CARLSON ICE","tipo":"Botines","skus":"B84205301633636, B84205301633637, B84205301633638, B84205301633639, B84205301633640","stock":13,"precioPubl":279990,"precioNeto":235286,"costoNeto":93179,"margenPct":60.4,"maxDcto":19.7,"precioActual":251990,"dctoActual":10,"mgActual":56,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":5,"S15":2,"S16":0,"S17":1,"S18":0,"S19":0,"S20":0,"S21":0,"S22":10},"tier":0,"st":0},{"title":"BOTIN CHELSEA FANGO","tipo":"Botines","skus":"U81201201613342, U81201201613343, U81201201613344, U81201201613345, U81201201613346","stock":2,"precioPubl":209990,"precioNeto":176462,"costoNeto":82000,"margenPct":53.5,"maxDcto":5.7,"precioActual":188990,"dctoActual":10,"mgActual":48.4,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"BOTIN CHELSEA RANGER","tipo":"Botines","skus":"U81201201651642, U81201201651643, U81201201651644, U81201201651646, U81201201651645","stock":3,"precioPubl":209990,"precioNeto":176462,"costoNeto":82000,"margenPct":53.5,"maxDcto":5.7,"precioActual":188990,"dctoActual":10,"mgActual":48.4,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":1,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":1,"S22":0},"tier":0,"st":0},{"title":"BOTIN CLASH FONDENTE","tipo":"Botines","skus":"4012011801650742, 4012011801650743, 4012011801650744, 4012011801650745","stock":7,"precioPubl":219990,"precioNeto":184866,"costoNeto":76000,"margenPct":58.9,"maxDcto":16.6,"precioActual":197990,"dctoActual":10,"mgActual":54.3,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"BOTIN CLASH NEGRO","tipo":"Botines","skus":"4012011801600241, 4012011801600242, 4012011801600243, 4012011801600244, 4012011801600245","stock":11,"precioPubl":219990,"precioNeto":184866,"costoNeto":76000,"margenPct":58.9,"maxDcto":16.6,"precioActual":197990,"dctoActual":10,"mgActual":54.3,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"BOTIN COBAIN EBANO","tipo":"Botines","skus":"B80233101614436, B80233101614437, B80233101614438, B80233101614439, B80233101614440","stock":12,"precioPubl":209990,"precioNeto":176462,"costoNeto":69653,"margenPct":60.5,"maxDcto":19.9,"precioActual":167990,"dctoActual":20,"mgActual":50.7,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":1,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"BOTIN COUNTRY ARGENTO","tipo":"Botines","skus":"B84202101000135, B84202101000136, B84202101000137, B84202101000138, B84202101000139, B84202101000140","stock":3,"precioPubl":299990,"precioNeto":252092,"costoNeto":105453,"margenPct":58.2,"maxDcto":15.1,"precioActual":269990,"dctoActual":10,"mgActual":53.5,"weekSales":{"S11":0,"S12":0,"S13":1,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":1,"S22":1},"tier":0,"st":0},{"title":"BOTIN COUNTRY OTTONE","tipo":"Botines","skus":"B84202201000136, B84202201000137, B84202201000138, B84202201000139, B84202201000140","stock":12,"precioPubl":299990,"precioNeto":252092,"costoNeto":102366,"margenPct":59.4,"maxDcto":17.6,"precioActual":239990,"dctoActual":20,"mgActual":49.2,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"BOTIN CURE EBANO","tipo":"Botines","skus":"548214301614436, 548214301614437, 548214301614438, 548214301614439, 548214301614440","stock":7,"precioPubl":229990,"precioNeto":193269,"costoNeto":85335,"margenPct":55.8,"maxDcto":10.4,"precioActual":229990,"dctoActual":0,"mgActual":55.8,"weekSales":{"S11":0,"S12":1,"S13":2,"S14":3,"S15":0,"S16":0,"S17":1,"S18":1,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"BOTIN CURE NEGRO","tipo":"Botines","skus":"548214301600235, 548214301600236, 548214301600237, 548214301600238, 548214301600239, 548214301600240","stock":12,"precioPubl":229990,"precioNeto":193269,"costoNeto":85335,"margenPct":55.8,"maxDcto":10.4,"precioActual":229990,"dctoActual":0,"mgActual":55.8,"weekSales":{"S11":1,"S12":1,"S13":1,"S14":1,"S15":3,"S16":0,"S17":0,"S18":1,"S19":4,"S20":1,"S21":0,"S22":3},"tier":0,"st":0},{"title":"BOTIN DARREL FONDENTE","tipo":"Botines","skus":"B51208101650736, B51208101650737, B51208101650738, B51208101650739, B51208101650740","stock":2,"precioPubl":289990,"precioNeto":243689,"costoNeto":72873,"margenPct":70.1,"maxDcto":39.3,"precioActual":202990,"dctoActual":30,"mgActual":57.3,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"BOTIN DYLAN FONDENTE","tipo":"Botines","skus":"259213201650735, 259213201650736, 259213201650737, 259213201650738, 259213201650739, 259213201650740","stock":1,"precioPubl":299990,"precioNeto":252092,"costoNeto":98000,"margenPct":61.1,"maxDcto":21.1,"precioActual":209990,"dctoActual":30,"mgActual":44.5,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"BOTIN EASY ARGENTO","tipo":"Botines","skus":"A89209501000136, A89209501000137, A89209501000138, A89209501000139, A89209501000140","stock":1,"precioPubl":279990,"precioNeto":235286,"costoNeto":97127,"margenPct":58.7,"maxDcto":16.3,"precioActual":195990,"dctoActual":30,"mgActual":41,"weekSales":{"S11":0,"S12":0,"S13":1,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"BOTIN EASY EBANO","tipo":"Botines","skus":"A89209101614436, A89209101614437, A89209101614438, A89209101614439, A89209101614440","stock":10,"precioPubl":259990,"precioNeto":218479,"costoNeto":97851,"margenPct":55.2,"maxDcto":9.2,"precioActual":259990,"dctoActual":0,"mgActual":55.2,"weekSales":{"S11":1,"S12":0,"S13":0,"S14":2,"S15":1,"S16":2,"S17":0,"S18":1,"S19":2,"S20":0,"S21":1,"S22":2},"tier":0,"st":0},{"title":"BOTIN EASY FANGO","tipo":"Botines","skus":"A89209101613335, A89209101613336, A89209101613337, A89209101613338, A89209101613339, A89209101613340","stock":2,"precioPubl":259990,"precioNeto":218479,"costoNeto":85000,"margenPct":61.1,"maxDcto":21.1,"precioActual":233990,"dctoActual":10,"mgActual":56.8,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"BOTIN EASY NEGRO","tipo":"Botines","skus":"A89209101600235, A89209101600236, A89209101600237, A89209101600238, A89209101600239, A89209101600240","stock":22,"precioPubl":259990,"precioNeto":218479,"costoNeto":97855,"margenPct":55.2,"maxDcto":9.1,"precioActual":259990,"dctoActual":0,"mgActual":55.2,"weekSales":{"S11":0,"S12":2,"S13":1,"S14":5,"S15":1,"S16":1,"S17":1,"S18":0,"S19":3,"S20":0,"S21":1,"S22":1},"tier":0,"st":0},{"title":"BOTIN EASY OTTONE","tipo":"Botines","skus":"A89209501000236, A89209501000237, A89209501000238, A89209501000239, A89209501000240","stock":2,"precioPubl":279990,"precioNeto":235286,"costoNeto":97127,"margenPct":58.7,"maxDcto":16.3,"precioActual":195990,"dctoActual":30,"mgActual":41,"weekSales":{"S11":0,"S12":1,"S13":1,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":1,"S20":0,"S21":0,"S22":1},"tier":0,"st":0},{"title":"BOTIN GEES OTTONE","tipo":"Botines","skus":"A94127201615535, A94127201615536, A94127201615537, A94127201615538, A94127201615539, A94127201615540","stock":2,"precioPubl":219990,"precioNeto":184866,"costoNeto":72800,"margenPct":60.6,"maxDcto":20.1,"precioActual":153990,"dctoActual":30,"mgActual":43.7,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"BOTIN GESS NEGRO","tipo":"Botines","skus":"A94127101600235, A94127101600236, A94127101600237, A94127101600238, A94127101600239, A94127101600240","stock":1,"precioPubl":219990,"precioNeto":184866,"costoNeto":69600,"margenPct":62.4,"maxDcto":23.6,"precioActual":153990,"dctoActual":30,"mgActual":46.2,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"BOTIN GINEBRA ICE","tipo":"Botines","skus":"A94132101633636, A94132101633637, A94132101633638, A94132101633639, A94132101633640","stock":14,"precioPubl":219990,"precioNeto":184866,"costoNeto":70095,"margenPct":62.1,"maxDcto":23.1,"precioActual":175990,"dctoActual":20,"mgActual":52.6,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":1,"S15":1,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"BOTIN GINEBRA MADERA","tipo":"Botines","skus":"A94132301658036, A94132301658037, A94132301658038, A94132301658039, A94132301658040","stock":12,"precioPubl":219990,"precioNeto":184866,"costoNeto":75095,"margenPct":59.4,"maxDcto":17.6,"precioActual":175990,"dctoActual":20,"mgActual":49.2,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":1,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":1},"tier":0,"st":0},{"title":"BOTIN GUNS NEGRO","tipo":"Botines","skus":"259256201600235, 259256201600236, 259256201600237, 259256201600238, 259256201600239, 259256201600240, 259256201600241","stock":5,"precioPubl":209990,"precioNeto":176462,"costoNeto":66223,"margenPct":62.5,"maxDcto":23.9,"precioActual":209990,"dctoActual":0,"mgActual":62.5,"weekSales":{"S11":1,"S12":0,"S13":1,"S14":0,"S15":0,"S16":0,"S17":0,"S18":2,"S19":1,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"BOTIN ISOLA NERO","tipo":"Botines","skus":"C14207201600236, C14207201600237, C14207201600238, C14207201600239, C14207201600240","stock":1,"precioPubl":279990,"precioNeto":235286,"costoNeto":0,"margenPct":null,"maxDcto":0,"precioActual":279990,"dctoActual":0,"mgActual":null,"weekSales":{"S11":2,"S12":1,"S13":0,"S14":2,"S15":1,"S16":0,"S17":1,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"BOTIN JEANE EBANO","tipo":"Botines","skus":"A24229101690336, A24229101690337, A24229101690338, A24229101690339, A24229101690340","stock":10,"precioPubl":239990,"precioNeto":201672,"costoNeto":86473,"margenPct":57.1,"maxDcto":13,"precioActual":239990,"dctoActual":0,"mgActual":57.1,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":1,"S15":1,"S16":0,"S17":2,"S18":0,"S19":0,"S20":2,"S21":1,"S22":3},"tier":0,"st":0},{"title":"BOTIN JEANE MADERA","tipo":"Botines","skus":"A24229401658036, A24229401658037, A24229401658038, A24229401658039, A24229401658040","stock":11,"precioPubl":239990,"precioNeto":201672,"costoNeto":86473,"margenPct":57.1,"maxDcto":13,"precioActual":239990,"dctoActual":0,"mgActual":57.1,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":1,"S16":3,"S17":0,"S18":3,"S19":0,"S20":0,"S21":0,"S22":1},"tier":0,"st":0},{"title":"BOTIN JEANE NEGRO","tipo":"Botines","skus":"A24229401600236, A24229401600237, A24229401600238, A24229401600239, A24229401600240","stock":14,"precioPubl":239990,"precioNeto":201672,"costoNeto":82392,"margenPct":59.1,"maxDcto":17.1,"precioActual":239990,"dctoActual":0,"mgActual":59.1,"weekSales":{"S11":0,"S12":0,"S13":2,"S14":3,"S15":2,"S16":2,"S17":2,"S18":1,"S19":0,"S20":0,"S21":1,"S22":1},"tier":0,"st":0},{"title":"BOTIN JOY NEGRO","tipo":"Botines","skus":"A24208103600236, A24208103600237, A24208103600238, A24208103600239, A24208103600240","stock":6,"precioPubl":219990,"precioNeto":184866,"costoNeto":73779,"margenPct":60.1,"maxDcto":19,"precioActual":219990,"dctoActual":0,"mgActual":60.1,"weekSales":{"S11":0,"S12":0,"S13":1,"S14":2,"S15":0,"S16":2,"S17":1,"S18":0,"S19":0,"S20":2,"S21":3,"S22":0},"tier":0,"st":0},{"title":"BOTIN KORN MADERA","tipo":"Botines","skus":"B54204101658036, B54204101658037, B54204101658038, B54204101658039","stock":3,"precioPubl":229990,"precioNeto":193269,"costoNeto":84198,"margenPct":56.4,"maxDcto":11.6,"precioActual":229990,"dctoActual":0,"mgActual":56.4,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":1,"S17":0,"S18":0,"S19":1,"S20":2,"S21":0,"S22":2},"tier":0,"st":0},{"title":"BOTIN KORN NEGRO","tipo":"Botines","skus":"B54204101600235, B54204101600236, B54204101600237, B54204101600238, B54204101600239, B54204101600240","stock":12,"precioPubl":229990,"precioNeto":193269,"costoNeto":74518,"margenPct":61.4,"maxDcto":21.8,"precioActual":229990,"dctoActual":0,"mgActual":61.4,"weekSales":{"S11":1,"S12":2,"S13":3,"S14":0,"S15":1,"S16":0,"S17":1,"S18":0,"S19":1,"S20":1,"S21":2,"S22":2},"tier":0,"st":0},{"title":"BOTIN LED NEGRO","tipo":"Botines","skus":"U94203301600242, U94203301600243, U94203301600244, U94203301600245","stock":1,"precioPubl":189990,"precioNeto":159655,"costoNeto":80000,"margenPct":49.9,"maxDcto":0,"precioActual":170990,"dctoActual":10,"mgActual":44.3,"weekSales":{"S11":0,"S12":1,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":1,"S22":0},"tier":0,"st":0},{"title":"BOTIN NANTES CALVADOS","tipo":"Botines","skus":"B80231201687136, B80231201687137, B80231201687138, B80231201687139, B80231201687140","stock":14,"precioPubl":259990,"precioNeto":218479,"costoNeto":95576,"margenPct":56.3,"maxDcto":11.3,"precioActual":233990,"dctoActual":10,"mgActual":51.4,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":2,"S19":0,"S20":2,"S21":1,"S22":0},"tier":0,"st":0},{"title":"BOTIN NANTES CARTON","tipo":"Botines","skus":"B80231101686836, B80231101686837, B80231101686838, B80231101686839, B80231101686840","stock":9,"precioPubl":259990,"precioNeto":218479,"costoNeto":92162,"margenPct":57.8,"maxDcto":14.4,"precioActual":233990,"dctoActual":10,"mgActual":53.1,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":2,"S20":1,"S21":0,"S22":1},"tier":0,"st":0},{"title":"BOTIN NANTES ICE","tipo":"Botines","skus":"B80231201633636, B80231201633637, B80231201633638, B80231201633639, B80231201633640","stock":13,"precioPubl":259990,"precioNeto":218479,"costoNeto":95576,"margenPct":56.3,"maxDcto":11.3,"precioActual":233990,"dctoActual":10,"mgActual":51.4,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":1,"S18":1,"S19":0,"S20":0,"S21":0,"S22":1},"tier":0,"st":0},{"title":"BOTIN NASH ORO","tipo":"Botines","skus":"B84205401000136, B84205401000137, B84205401000138, B84205401000139, B84205401000140","stock":13,"precioPubl":279990,"precioNeto":235286,"costoNeto":93030,"margenPct":60.5,"maxDcto":19.8,"precioActual":251990,"dctoActual":10,"mgActual":56.1,"weekSales":{"S11":0,"S12":1,"S13":0,"S14":0,"S15":0,"S16":1,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"BOTIN OLTEN MADERA","tipo":"Botines","skus":"B82117101658036, B82117101658037, B82117101658038, B82117101658039, B82117101658040","stock":7,"precioPubl":239990,"precioNeto":201672,"costoNeto":81922,"margenPct":59.4,"maxDcto":17.6,"precioActual":239990,"dctoActual":0,"mgActual":59.4,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":1,"S15":0,"S16":0,"S17":0,"S18":1,"S19":1,"S20":1,"S21":1,"S22":0},"tier":0,"st":0},{"title":"BOTIN OLTEN TEAL","tipo":"Botines","skus":"B82117201658236, B82117201658237, B82117201658238, B82117201658239, B82117201658240","stock":12,"precioPubl":249990,"precioNeto":210076,"costoNeto":85335,"margenPct":59.4,"maxDcto":17.6,"precioActual":224990,"dctoActual":10,"mgActual":54.9,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":1,"S18":0,"S19":0,"S20":0,"S21":1,"S22":2},"tier":0,"st":0},{"title":"BOTIN PROVENCE EBANO","tipo":"Botines","skus":"A89233201614436, A89233201614437, A89233201614438, A89233201614439, A89233201614440","stock":6,"precioPubl":219990,"precioNeto":184866,"costoNeto":77371,"margenPct":58.1,"maxDcto":15.1,"precioActual":219990,"dctoActual":0,"mgActual":58.1,"weekSales":{"S11":0,"S12":1,"S13":2,"S14":0,"S15":0,"S16":0,"S17":0,"S18":1,"S19":0,"S20":2,"S21":0,"S22":0},"tier":0,"st":0},{"title":"BOTIN RHAPSODY CARTÓN","tipo":"Botines","skus":"207239202000636, 207239202000637, 207239202000638, 207239202000639, 207239202000640","stock":14,"precioPubl":249990,"precioNeto":210076,"costoNeto":88746,"margenPct":57.8,"maxDcto":14.3,"precioActual":249990,"dctoActual":0,"mgActual":57.8,"weekSales":{"S11":1,"S12":0,"S13":0,"S14":1,"S15":0,"S16":1,"S17":1,"S18":2,"S19":0,"S20":1,"S21":0,"S22":0},"tier":0,"st":0},{"title":"BOTIN RHAPSODY EBANO","tipo":"Botines","skus":"207239702000136, 207239702000137, 207239702000138, 207239702000139, 207239702000140","stock":20,"precioPubl":249990,"precioNeto":210076,"costoNeto":88749,"margenPct":57.8,"maxDcto":14.3,"precioActual":224990,"dctoActual":10,"mgActual":53.1,"weekSales":{"S11":1,"S12":1,"S13":0,"S14":0,"S15":0,"S16":0,"S17":2,"S18":1,"S19":1,"S20":0,"S21":1,"S22":3},"tier":0,"st":0},{"title":"BOTIN RHAPSODY ICE","tipo":"Botines","skus":"207239801000136, 207239801000137, 207239801000138, 207239801000139, 207239801000140","stock":13,"precioPubl":259990,"precioNeto":218479,"costoNeto":0,"margenPct":null,"maxDcto":0,"precioActual":233990,"dctoActual":10,"mgActual":null,"weekSales":{"S11":0,"S12":0,"S13":3,"S14":1,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"BOTIN RHAPSODY MADERA","tipo":"Botines","skus":"207239702000336, 207239702000337, 207239702000338, 207239702000339, 207239702000340","stock":12,"precioPubl":249990,"precioNeto":210076,"costoNeto":88749,"margenPct":57.8,"maxDcto":14.3,"precioActual":224990,"dctoActual":10,"mgActual":53.1,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":1,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":1,"S21":0,"S22":0},"tier":0,"st":0},{"title":"BOTIN RHAPSODY NEGRO","tipo":"Botines","skus":"207239202600236, 207239202600237, 207239202600238, 207239202600239, 207239202600240","stock":103,"precioPubl":249990,"precioNeto":210076,"costoNeto":88578,"margenPct":57.8,"maxDcto":14.5,"precioActual":224990,"dctoActual":10,"mgActual":53.1,"weekSales":{"S11":0,"S12":3,"S13":1,"S14":1,"S15":1,"S16":1,"S17":2,"S18":2,"S19":1,"S20":0,"S21":1,"S22":3},"tier":0,"st":0},{"title":"BOTIN ROD CASTAÑA","tipo":"Botines","skus":"U81202201622541, U81202201622542, U81202201622543, U81202201622544, U81202201622545, U81202201622546","stock":4,"precioPubl":189990,"precioNeto":159655,"costoNeto":75000,"margenPct":53,"maxDcto":4.7,"precioActual":170990,"dctoActual":10,"mgActual":47.8,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":1,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"BOTIN ROD FANGO","tipo":"Botines","skus":"U81202201613341, U81202201613342, U81202201613343, U81202201613344, U81202201613345, U81202201613346","stock":4,"precioPubl":189990,"precioNeto":159655,"costoNeto":75000,"margenPct":53,"maxDcto":4.7,"precioActual":170990,"dctoActual":10,"mgActual":47.8,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"BOTIN RORY MADERA","tipo":"Botines","skus":"B82211101658036, B82211101658037, B82211101658038, B82211101658039","stock":1,"precioPubl":269990,"precioNeto":226882,"costoNeto":97465,"margenPct":57,"maxDcto":12.9,"precioActual":188990,"dctoActual":30,"mgActual":38.6,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":1,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":2},"tier":0,"st":0},{"title":"BOTIN ROXANE EBANO","tipo":"Botines","skus":"B80234301614436, B80234301614437, B80234301614438, B80234301614439, B80234301614440","stock":14,"precioPubl":299990,"precioNeto":252092,"costoNeto":108092,"margenPct":57.1,"maxDcto":13,"precioActual":269990,"dctoActual":10,"mgActual":52.4,"weekSales":{"S11":1,"S12":0,"S13":0,"S14":1,"S15":0,"S16":0,"S17":1,"S18":0,"S19":0,"S20":2,"S21":0,"S22":2},"tier":0,"st":0},{"title":"BOTIN ROXANE ICE","tipo":"Botines","skus":"B802341010001I2536, B802341010001I2537, B802341010001I2538, B802341010001I2539, B802341010001I2540","stock":12,"precioPubl":299990,"precioNeto":252092,"costoNeto":108092,"margenPct":57.1,"maxDcto":13,"precioActual":269990,"dctoActual":10,"mgActual":52.4,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":1,"S15":1,"S16":0,"S17":0,"S18":1,"S19":0,"S20":1,"S21":2,"S22":1},"tier":0,"st":0},{"title":"BOTIN ROXANE NEGRO","tipo":"Botines","skus":"B80242101600236, B80242101600239, B80242101600240, B80242101600237, B80242101600238","stock":47,"precioPubl":299990,"precioNeto":252092,"costoNeto":103025,"margenPct":59.1,"maxDcto":17.1,"precioActual":269990,"dctoActual":10,"mgActual":54.6,"weekSales":{"S11":1,"S12":2,"S13":1,"S14":0,"S15":0,"S16":0,"S17":1,"S18":0,"S19":0,"S20":0,"S21":0,"S22":1},"tier":0,"st":0},{"title":"BOTIN ROXY NEGRO","tipo":"Botines","skus":"259214304600237, 259214304600238, 259214304600239, 259214304600240","stock":7,"precioPubl":269990,"precioNeto":226882,"costoNeto":100127,"margenPct":55.9,"maxDcto":10.5,"precioActual":269990,"dctoActual":0,"mgActual":55.9,"weekSales":{"S11":0,"S12":1,"S13":0,"S14":3,"S15":0,"S16":1,"S17":2,"S18":1,"S19":1,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"BOTIN RUBY ARGENTO","tipo":"Botines","skus":"B82206201611035, B82206201611036, B82206201611037, B82206201611038, B82206201611039, B82206201611040","stock":5,"precioPubl":219990,"precioNeto":184866,"costoNeto":94685,"margenPct":48.8,"maxDcto":0,"precioActual":153990,"dctoActual":30,"mgActual":26.8,"weekSales":{"S11":1,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":1,"S18":0,"S19":2,"S20":0,"S21":0,"S22":1},"tier":0,"st":0},{"title":"BOTIN RUBY GRIS PLATA","tipo":"Botines","skus":"B82206102000135, B82206102000136, B82206102000137, B82206102000138, B82206102000139, B82206102000140","stock":5,"precioPubl":219990,"precioNeto":184866,"costoNeto":88886,"margenPct":51.9,"maxDcto":2.5,"precioActual":153990,"dctoActual":30,"mgActual":31.3,"weekSales":{"S11":1,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":1,"S18":0,"S19":2,"S20":0,"S21":0,"S22":1},"tier":0,"st":0},{"title":"BOTIN SAINT FONDENTE","tipo":"Botines","skus":"259238502000236, 259238502000237, 259238502000238, 259238502000239, 259238502000240","stock":42,"precioPubl":219990,"precioNeto":184866,"costoNeto":71682,"margenPct":61.2,"maxDcto":21.3,"precioActual":197990,"dctoActual":10,"mgActual":56.9,"weekSales":{"S11":1,"S12":1,"S13":6,"S14":1,"S15":0,"S16":1,"S17":1,"S18":1,"S19":2,"S20":0,"S21":0,"S22":2},"tier":0,"st":0},{"title":"BOTIN SAINT MADERA","tipo":"Botines","skus":"259238502000836, 259238502000837, 259238502000838, 259238502000839, 259238502000840","stock":8,"precioPubl":219990,"precioNeto":184866,"costoNeto":71682,"margenPct":61.2,"maxDcto":21.3,"precioActual":219990,"dctoActual":0,"mgActual":61.2,"weekSales":{"S11":1,"S12":1,"S13":1,"S14":1,"S15":0,"S16":0,"S17":1,"S18":1,"S19":0,"S20":0,"S21":0,"S22":1},"tier":0,"st":0},{"title":"BOTIN SAINT NEGRO","tipo":"Botines","skus":"259238502600236, 259238502600237, 259238502600238, 259238502600239, 259238502600240","stock":45,"precioPubl":219990,"precioNeto":184866,"costoNeto":71934,"margenPct":61.1,"maxDcto":21.1,"precioActual":197990,"dctoActual":10,"mgActual":56.8,"weekSales":{"S11":0,"S12":1,"S13":2,"S14":0,"S15":1,"S16":3,"S17":1,"S18":4,"S19":1,"S20":0,"S21":0,"S22":2},"tier":0,"st":0},{"title":"BOTIN STUDS CALVADOS","tipo":"Botines","skus":"401231304687142, 401231304687143, 401231304687144, 401231304687145","stock":3,"precioPubl":189990,"precioNeto":159655,"costoNeto":93000,"margenPct":41.7,"maxDcto":0,"precioActual":170990,"dctoActual":10,"mgActual":35.3,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"BOTIN STUDS NEGRO","tipo":"Botines","skus":"401231304600240, 401231304600241, 401231304600242, 401231304600243, 401231304600244, 401231304600245, 401231304600246","stock":2,"precioPubl":229990,"precioNeto":193269,"costoNeto":93000,"margenPct":51.9,"maxDcto":2.4,"precioActual":206990,"dctoActual":10,"mgActual":46.5,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"BOTIN TRENT CALVADOS","tipo":"Botines","skus":"B80232201687136, B80232201687137, B80232201687138, B80232201687139, B80232201687140","stock":28,"precioPubl":219990,"precioNeto":184866,"costoNeto":76132,"margenPct":58.8,"maxDcto":16.5,"precioActual":175990,"dctoActual":20,"mgActual":48.5,"weekSales":{"S11":1,"S12":1,"S13":1,"S14":1,"S15":0,"S16":1,"S17":0,"S18":1,"S19":1,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"BOTIN TRENT ICE","tipo":"Botines","skus":"B80232201633636, B80232201633637, B80232201633638, B80232201633639, B80232201633640","stock":30,"precioPubl":219990,"precioNeto":184866,"costoNeto":78453,"margenPct":57.6,"maxDcto":13.9,"precioActual":175990,"dctoActual":20,"mgActual":47,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":1,"S15":1,"S16":0,"S17":2,"S18":1,"S19":1,"S20":0,"S21":0,"S22":7},"tier":0,"st":0},{"title":"BOTIN TRENT NERO","tipo":"Botines","skus":"B80232401600236, B80232401600237, B80232401600238, B80232401600239, B80232401600240","stock":24,"precioPubl":219990,"precioNeto":184866,"costoNeto":78509,"margenPct":57.5,"maxDcto":13.9,"precioActual":197990,"dctoActual":10,"mgActual":52.8,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":2,"S15":0,"S16":1,"S17":0,"S18":2,"S19":1,"S20":1,"S21":0,"S22":0},"tier":0,"st":0},{"title":"BOTIN TRENT TEAL","tipo":"Botines","skus":"B80232101658236, B80232101658237, B80232101658238, B80232101658239, B80232101658240","stock":12,"precioPubl":219990,"precioNeto":184866,"costoNeto":75095,"margenPct":59.4,"maxDcto":17.6,"precioActual":175990,"dctoActual":20,"mgActual":49.2,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":1,"S17":0,"S18":0,"S19":1,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"BOTIN VALENCE CASTAGNA (MJUS by AS98)","tipo":"Botines","skus":"L89201101622536, L89201101622537, L89201101622538, L89201101622539, L89201101622540","stock":10,"precioPubl":179990,"precioNeto":151252,"costoNeto":57723,"margenPct":61.8,"maxDcto":22.6,"precioActual":161990,"dctoActual":10,"mgActual":57.6,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":1,"S20":1,"S21":0,"S22":4},"tier":0,"st":0},{"title":"BOTIN VALENCE NEGRO (MJUS by AS98)","tipo":"Botines","skus":"L89201101600236, L89201101600237, L89201101600238, L89201101600239, L89201101600240","stock":13,"precioPubl":179990,"precioNeto":151252,"costoNeto":57723,"margenPct":61.8,"maxDcto":22.6,"precioActual":161990,"dctoActual":10,"mgActual":57.6,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":2,"S19":0,"S20":0,"S21":0,"S22":1},"tier":0,"st":0},{"title":"BOTIN VENICE BORDO (MJUS by AS98)","tipo":"Botines","skus":"L39205201633436, L39205201633437, L39205201633438, L39205201633439, L39205201633440","stock":9,"precioPubl":179990,"precioNeto":151252,"costoNeto":61187,"margenPct":59.5,"maxDcto":17.9,"precioActual":179990,"dctoActual":0,"mgActual":59.5,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":1,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"BOTIN VENICE NEGRO (MJUS by AS98)","tipo":"Botines","skus":"L39206101600236, L39206101600237, L39206101600238, L39206101600239, L39206101600240","stock":9,"precioPubl":179990,"precioNeto":151252,"costoNeto":58467,"margenPct":61.3,"maxDcto":21.6,"precioActual":179990,"dctoActual":0,"mgActual":61.3,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":1,"S16":0,"S17":1,"S18":0,"S19":1,"S20":1,"S21":5,"S22":1},"tier":0,"st":0},{"title":"BOTIN VENICE PELTRO (MJUS by AS98)","tipo":"Botines","skus":"L39205201633436, L39205201633437, L39205201633438, L39205201633439, L39205201633440","stock":9,"precioPubl":179990,"precioNeto":151252,"costoNeto":61187,"margenPct":59.5,"maxDcto":17.9,"precioActual":179990,"dctoActual":0,"mgActual":59.5,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":1,"S19":1,"S20":2,"S21":2,"S22":2},"tier":0,"st":0},{"title":"BOTIN VIENA CAFE (MJUS by AS98)","tipo":"Botines","skus":"L48206101622536, L48206101622537, L48206101622538, L48206101622539, L48206101622540","stock":6,"precioPubl":159990,"precioNeto":134445,"costoNeto":52848,"margenPct":60.7,"maxDcto":20.3,"precioActual":159990,"dctoActual":0,"mgActual":60.7,"weekSales":{"S11":0,"S12":3,"S13":5,"S14":1,"S15":0,"S16":0,"S17":2,"S18":4,"S19":0,"S20":2,"S21":0,"S22":0},"tier":0,"st":0},{"title":"BOTIN VIENA NEGRO (MJUS by AS98)","tipo":"Botines","skus":"L48206101600236, L48206101600237, L48206101600238, L48206101600239, L48206101600240","stock":12,"precioPubl":159990,"precioNeto":134445,"costoNeto":53887,"margenPct":59.9,"maxDcto":18.7,"precioActual":159990,"dctoActual":0,"mgActual":59.9,"weekSales":{"S11":0,"S12":1,"S13":1,"S14":1,"S15":0,"S16":0,"S17":1,"S18":1,"S19":0,"S20":0,"S21":1,"S22":3},"tier":0,"st":0},{"title":"BOTIN VIENA VERDE (MJUS by AS98)","tipo":"Botines","skus":"L48206101611936, L48206101611937, L48206101611938, L48206101611939, L48206101611940","stock":5,"precioPubl":159990,"precioNeto":134445,"costoNeto":55414,"margenPct":58.8,"maxDcto":16.4,"precioActual":159990,"dctoActual":0,"mgActual":58.8,"weekSales":{"S11":0,"S12":3,"S13":5,"S14":1,"S15":0,"S16":0,"S17":2,"S18":4,"S19":0,"S20":2,"S21":0,"S22":0},"tier":0,"st":0},{"title":"BOTIN WILCO NEGRO","tipo":"Botines","skus":"A23210501600235, A23210501600236, A23210501600237, A23210501600238, A23210501600239, A23210501600240, A23210501600241","stock":34,"precioPubl":239990,"precioNeto":201672,"costoNeto":83382,"margenPct":58.7,"maxDcto":16.1,"precioActual":215990,"dctoActual":10,"mgActual":54.1,"weekSales":{"S11":0,"S12":0,"S13":2,"S14":1,"S15":2,"S16":0,"S17":0,"S18":1,"S19":0,"S20":0,"S21":3,"S22":1},"tier":0,"st":0},{"title":"BOTIN ZAC EBANO","tipo":"Botines","skus":"B84216301614436, B84216301614437, B84216301614438, B84216301614439, B84216301614440","stock":2,"precioPubl":309990,"precioNeto":260496,"costoNeto":102920,"margenPct":60.5,"maxDcto":19.9,"precioActual":309990,"dctoActual":0,"mgActual":60.5,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":1,"S15":1,"S16":0,"S17":0,"S18":1,"S19":2,"S20":1,"S21":0,"S22":1},"tier":0,"st":0},{"title":"BOTIN ZAC ICE","tipo":"Botines","skus":"B84216201633636, B84216201633637, B84216201633638, B84216201633639, B84216201633640","stock":2,"precioPubl":309990,"precioNeto":260496,"costoNeto":107832,"margenPct":58.6,"maxDcto":16,"precioActual":309990,"dctoActual":0,"mgActual":58.6,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":1,"S21":0,"S22":0},"tier":0,"st":0},{"title":"BOTIN ZURICH ICE","tipo":"Botines","skus":"B82209501633636, B82209501633639, B82209501633640, B82209501633637, B82209501633638","stock":13,"precioPubl":239990,"precioNeto":201672,"costoNeto":85335,"margenPct":57.7,"maxDcto":14.2,"precioActual":191990,"dctoActual":20,"mgActual":47.1,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":1,"S17":0,"S18":0,"S19":3,"S20":0,"S21":0,"S22":4},"tier":0,"st":0},{"title":"CARTERA BANANO SKY CALVADOS","tipo":"Cartera","skus":"2007653016871","stock":1,"precioPubl":349990,"precioNeto":294109,"costoNeto":130948,"margenPct":55.5,"maxDcto":9.7,"precioActual":349990,"dctoActual":0,"mgActual":55.5,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"CARTERA BANANO SKY NERO","tipo":"Cartera","skus":"2007653016002","stock":4,"precioPubl":349990,"precioNeto":294109,"costoNeto":130948,"margenPct":55.5,"maxDcto":9.7,"precioActual":349990,"dctoActual":0,"mgActual":55.5,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"CARTERA KIAN CALVADOS","tipo":"Cartera","skus":"20069012016871","stock":3,"precioPubl":139990,"precioNeto":117639,"costoNeto":54174,"margenPct":53.9,"maxDcto":6.6,"precioActual":125990,"dctoActual":10,"mgActual":48.8,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"CARTERA KIAN EBANO","tipo":"Cartera","skus":"20069010016144","stock":5,"precioPubl":139990,"precioNeto":117639,"costoNeto":52396,"margenPct":55.5,"maxDcto":9.7,"precioActual":125990,"dctoActual":10,"mgActual":50.5,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":1,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"CARTERA KIAN NEGRO","tipo":"Cartera","skus":"2006908016002","stock":8,"precioPubl":139990,"precioNeto":117639,"costoNeto":54174,"margenPct":53.9,"maxDcto":6.6,"precioActual":125990,"dctoActual":10,"mgActual":48.8,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"CARTERA LEAH BASALTO","tipo":"Cartera","skus":"2007762016579","stock":4,"precioPubl":339990,"precioNeto":285706,"costoNeto":0,"margenPct":null,"maxDcto":0,"precioActual":339990,"dctoActual":0,"mgActual":null,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"CARTERA LEAH MADERA","tipo":"Cartera","skus":"2007762016580","stock":2,"precioPubl":339990,"precioNeto":285706,"costoNeto":129171,"margenPct":54.8,"maxDcto":8.3,"precioActual":339990,"dctoActual":0,"mgActual":54.8,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":1,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"CARTERA LEAH NERO","tipo":"Cartera","skus":"2007762016002","stock":2,"precioPubl":339990,"precioNeto":285706,"costoNeto":129171,"margenPct":54.8,"maxDcto":8.3,"precioActual":339990,"dctoActual":0,"mgActual":54.8,"weekSales":{"S11":0,"S12":1,"S13":3,"S14":0,"S15":0,"S16":0,"S17":3,"S18":1,"S19":3,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"CARTERA LEIDEN EBANO","tipo":"Cartera","skus":"2007712010001","stock":4,"precioPubl":399990,"precioNeto":336126,"costoNeto":153634,"margenPct":54.3,"maxDcto":7.3,"precioActual":399990,"dctoActual":0,"mgActual":54.3,"weekSales":{"S11":0,"S12":0,"S13":1,"S14":0,"S15":0,"S16":0,"S17":1,"S18":0,"S19":1,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"CARTERA LEIDEN NEGRO","tipo":"Cartera","skus":"2007711016002","stock":5,"precioPubl":399990,"precioNeto":336126,"costoNeto":153634,"margenPct":54.3,"maxDcto":7.3,"precioActual":399990,"dctoActual":0,"mgActual":54.3,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":1,"S18":0,"S19":1,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"CARTERA LIMONE CALVADOS","tipo":"Cartera","skus":"2007157010001","stock":1,"precioPubl":179990,"precioNeto":151252,"costoNeto":71300,"margenPct":52.9,"maxDcto":4.4,"precioActual":179990,"dctoActual":0,"mgActual":52.9,"weekSales":{"S11":0,"S12":0,"S13":1,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"CARTERA LIPS BASALTO","tipo":"Cartera","skus":"2007842016579","stock":4,"precioPubl":319990,"precioNeto":268899,"costoNeto":120452,"margenPct":55.2,"maxDcto":9.1,"precioActual":287990,"dctoActual":10,"mgActual":50.2,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"CARTERA LIPS EBANO","tipo":"Cartera","skus":"2007842016144","stock":5,"precioPubl":319990,"precioNeto":268899,"costoNeto":120452,"margenPct":55.2,"maxDcto":9.1,"precioActual":287990,"dctoActual":10,"mgActual":50.2,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":1,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":1,"S22":0},"tier":0,"st":0},{"title":"CARTERA LIPS MADERA","tipo":"Cartera","skus":"2007842016580","stock":3,"precioPubl":319990,"precioNeto":268899,"costoNeto":120452,"margenPct":55.2,"maxDcto":9.1,"precioActual":287990,"dctoActual":10,"mgActual":50.2,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":1,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"CARTERA LIPS NERO","tipo":"Cartera","skus":"2007843016002","stock":7,"precioPubl":319990,"precioNeto":268899,"costoNeto":123923,"margenPct":53.9,"maxDcto":6.5,"precioActual":287990,"dctoActual":10,"mgActual":48.8,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":1,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"CARTERA LISSE NERO","tipo":"Cartera","skus":"2007782016002","stock":1,"precioPubl":429990,"precioNeto":361336,"costoNeto":0,"margenPct":null,"maxDcto":0,"precioActual":429990,"dctoActual":0,"mgActual":null,"weekSales":{"S11":0,"S12":0,"S13":2,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"CARTERA MARGARET BASALTO","tipo":"Cartera","skus":"2005922060002","stock":5,"precioPubl":209990,"precioNeto":176462,"costoNeto":81176,"margenPct":54,"maxDcto":6.7,"precioActual":209990,"dctoActual":0,"mgActual":54,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":1,"S17":0,"S18":1,"S19":1,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"CARTERA MARGARET EBANO LISO","tipo":"Cartera","skus":"2005922060006","stock":2,"precioPubl":209990,"precioNeto":176462,"costoNeto":81176,"margenPct":54,"maxDcto":6.7,"precioActual":209990,"dctoActual":0,"mgActual":54,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"CARTERA MARGARET MADERA","tipo":"Cartera","skus":"2005922060001","stock":4,"precioPubl":209990,"precioNeto":176462,"costoNeto":81176,"margenPct":54,"maxDcto":6.7,"precioActual":209990,"dctoActual":0,"mgActual":54,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":2,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"CARTERA MARGARET OASIS","tipo":"Cartera","skus":"2005922060009","stock":3,"precioPubl":209990,"precioNeto":176462,"costoNeto":81176,"margenPct":54,"maxDcto":6.7,"precioActual":209990,"dctoActual":0,"mgActual":54,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"CARTERA PATCH NEGRO","tipo":"Cartera","skus":"2003015056002","stock":1,"precioPubl":439990,"precioNeto":369739,"costoNeto":191132,"margenPct":48.3,"maxDcto":0,"precioActual":439990,"dctoActual":0,"mgActual":48.3,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":1,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":2},"tier":0,"st":0},{"title":"CINTURON ALPES NERO","tipo":"Cinturones","skus":"9881751016002","stock":7,"precioPubl":139990,"precioNeto":117639,"costoNeto":60268,"margenPct":48.8,"maxDcto":0,"precioActual":139990,"dctoActual":0,"mgActual":48.8,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"CINTURON BÁLTICO NERO","tipo":"Cinturones","skus":"9881482016002","stock":8,"precioPubl":99990,"precioNeto":84025,"costoNeto":41900,"margenPct":50.1,"maxDcto":0,"precioActual":99990,"dctoActual":0,"mgActual":50.1,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":1,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"CINTURON GOSSE CUOIO","tipo":"Cinturones","skus":"988117406613090, 9881174066130100","stock":3,"precioPubl":129990,"precioNeto":109235,"costoNeto":48563,"margenPct":55.5,"maxDcto":9.8,"precioActual":129990,"dctoActual":0,"mgActual":55.5,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":1,"S21":0,"S22":0},"tier":0,"st":0},{"title":"CINTURON GOSSE EBANO","tipo":"Cinturones","skus":"988117406614490, 9881174066144100","stock":8,"precioPubl":129990,"precioNeto":109235,"costoNeto":48563,"margenPct":55.5,"maxDcto":9.8,"precioActual":129990,"dctoActual":0,"mgActual":55.5,"weekSales":{"S11":1,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"CINTURON GOSSE NEGRO","tipo":"Cinturones","skus":"988117406600290, 9881174066002100","stock":1,"precioPubl":129990,"precioNeto":109235,"costoNeto":48563,"margenPct":55.5,"maxDcto":9.8,"precioActual":129990,"dctoActual":0,"mgActual":55.5,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"CINTURON JOE NATUR","tipo":"Cinturones","skus":"988012211621190, 9880122116211100","stock":6,"precioPubl":129990,"precioNeto":109235,"costoNeto":48931,"margenPct":55.2,"maxDcto":9.1,"precioActual":129990,"dctoActual":0,"mgActual":55.2,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"CINTURON JOE NEGRO","tipo":"Cinturones","skus":"988012211600290, 9880122116002100","stock":6,"precioPubl":139990,"precioNeto":117639,"costoNeto":48931,"margenPct":58.4,"maxDcto":15.6,"precioActual":139990,"dctoActual":0,"mgActual":58.4,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"CINTURON JOE TDM","tipo":"Cinturones","skus":"988012211625390, 9880122116253100","stock":6,"precioPubl":129990,"precioNeto":109235,"costoNeto":48931,"margenPct":55.2,"maxDcto":9.1,"precioActual":129990,"dctoActual":0,"mgActual":55.2,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"CINTURON JUDD NATUR","tipo":"Cinturones","skus":"988029109622190, 988029109622100","stock":2,"precioPubl":79990,"precioNeto":67218,"costoNeto":34604,"margenPct":48.5,"maxDcto":0,"precioActual":79990,"dctoActual":0,"mgActual":48.5,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":1},"tier":0,"st":0},{"title":"CINTURON JUDD NEGRO","tipo":"Cinturones","skus":"988029109600290, 9880291096002100","stock":2,"precioPubl":79990,"precioNeto":67218,"costoNeto":37498,"margenPct":44.2,"maxDcto":0,"precioActual":79990,"dctoActual":0,"mgActual":44.2,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"CINTURON KAM NEGRO","tipo":"Cinturones","skus":"988071110600290, 9880711106002100","stock":8,"precioPubl":99990,"precioNeto":84025,"costoNeto":41900,"margenPct":50.1,"maxDcto":0,"precioActual":99990,"dctoActual":0,"mgActual":50.1,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"CINTURON KENITH EBANO","tipo":"Cinturones","skus":"9880773016144","stock":5,"precioPubl":139990,"precioNeto":117639,"costoNeto":61961,"margenPct":47.3,"maxDcto":0,"precioActual":139990,"dctoActual":0,"mgActual":47.3,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":1,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"CINTURON KENITH NERO","tipo":"Cinturones","skus":"9880773016002","stock":3,"precioPubl":139990,"precioNeto":117639,"costoNeto":61961,"margenPct":47.3,"maxDcto":0,"precioActual":139990,"dctoActual":0,"mgActual":47.3,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":1,"S15":0,"S16":0,"S17":0,"S18":0,"S19":1,"S20":0,"S21":1,"S22":0},"tier":0,"st":0},{"title":"MOCASIN ANIA ORO","tipo":"Mocasines","skus":"B77105301000135, B77105301000136, B77105301000137, B77105301000138, B77105301000139, B77105301000140","stock":4,"precioPubl":169990,"precioNeto":142849,"costoNeto":53500,"margenPct":62.5,"maxDcto":24,"precioActual":118990,"dctoActual":30,"mgActual":46.5,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"MOCASIN CARL PLAINO","tipo":"Mocasines","skus":"B73111101631135, B73111101631136, B73111101631137, B73111101631138, B73111101631139, B73111101631140","stock":1,"precioPubl":189990,"precioNeto":159655,"costoNeto":70200,"margenPct":56,"maxDcto":10.8,"precioActual":132990,"dctoActual":30,"mgActual":37.2,"weekSales":{"S11":0,"S12":0,"S13":2,"S14":1,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"MOCASIN ERIC BEIGE","tipo":"Mocasines","skus":"B77102301000135, B77102301000136, B77102301000137, B77102301000138, B77102301000139, B77102301000140","stock":5,"precioPubl":179990,"precioNeto":151252,"costoNeto":56500,"margenPct":62.6,"maxDcto":24.2,"precioActual":125990,"dctoActual":30,"mgActual":46.6,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"MOCASIN GAYA NEGRO","tipo":"Mocasines","skus":"B59102401600236, B59102401600237, B59102401600238, B59102401600239, B59102401600240","stock":4,"precioPubl":179990,"precioNeto":151252,"costoNeto":63183,"margenPct":58.2,"maxDcto":15.3,"precioActual":161990,"dctoActual":10,"mgActual":53.6,"weekSales":{"S11":0,"S12":0,"S13":1,"S14":0,"S15":0,"S16":2,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"MOCASIN KNOX CAMEL","tipo":"Mocasines","skus":"B73108201000135, B73108201000136, B73108201000137, B73108201000138, B73108201000139, B73108201000140","stock":1,"precioPubl":179990,"precioNeto":151252,"costoNeto":61000,"margenPct":59.7,"maxDcto":18.2,"precioActual":125990,"dctoActual":30,"mgActual":42.4,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"MOCASIN MAVIS BRONCE","tipo":"Mocasines","skus":"B73101101631135, B73101101631136, B73101101631137, B73101101631138, B73101101631139, B73101101631140","stock":4,"precioPubl":179990,"precioNeto":151252,"costoNeto":59500,"margenPct":60.7,"maxDcto":20.2,"precioActual":125990,"dctoActual":30,"mgActual":43.8,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"MOCASIN SPLIT EBANO","tipo":"Mocasines","skus":"C13102101614436, C13102101614437, C13102101614438, C13102101614439, C13102101614440","stock":14,"precioPubl":189990,"precioNeto":159655,"costoNeto":65993,"margenPct":58.7,"maxDcto":16.2,"precioActual":170990,"dctoActual":10,"mgActual":54.1,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":1,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"MOCASIN SPLIT NEGRO","tipo":"Mocasines","skus":"C13102201600236, C13102201600237, C13102201600238, C13102201600239, C13102201600240","stock":12,"precioPubl":189990,"precioNeto":159655,"costoNeto":65993,"margenPct":58.7,"maxDcto":16.2,"precioActual":170990,"dctoActual":10,"mgActual":54.1,"weekSales":{"S11":0,"S12":1,"S13":1,"S14":0,"S15":0,"S16":0,"S17":1,"S18":1,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"MULE SIMON NEGRO","tipo":"Sandalias","skus":"B84114301600236, B84114301600237, B84114301600238, B84114301600239, B84114301600240","stock":2,"precioPubl":229990,"precioNeto":193269,"costoNeto":80102,"margenPct":58.6,"maxDcto":15.9,"precioActual":229990,"dctoActual":0,"mgActual":58.6,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"MULE VENERE NEGRO","tipo":"Sandalias","skus":"B97101101000136, B97101101000137, B97101101000138, B97101101000139, B97101101000140","stock":2,"precioPubl":219990,"precioNeto":184866,"costoNeto":71941,"margenPct":61.1,"maxDcto":21.1,"precioActual":219990,"dctoActual":0,"mgActual":61.1,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"MULE VENERE RUBINO","tipo":"Sandalias","skus":"B97101101623536, B97101101623537, B97101101623538, B97101101623539, B97101101623540","stock":1,"precioPubl":219990,"precioNeto":184866,"costoNeto":71941,"margenPct":61.1,"maxDcto":21.1,"precioActual":219990,"dctoActual":0,"mgActual":61.1,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"SANDALIA LIZZY CHIFFON","tipo":"Sandalias","skus":"B97106201000236, B97106201000237, B97106201000238, B97106201000239, B97106201000240","stock":1,"precioPubl":209990,"precioNeto":176462,"costoNeto":73525,"margenPct":58.3,"maxDcto":15.5,"precioActual":209990,"dctoActual":0,"mgActual":58.3,"weekSales":{"S11":0,"S12":2,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"SANDALIA LIZZY NEGRO","tipo":"Sandalias","skus":"B97106101600236, B97106101600237, B97106101600238, B97106101600239, B97106101600240","stock":3,"precioPubl":209990,"precioNeto":176462,"costoNeto":76774,"margenPct":56.5,"maxDcto":11.7,"precioActual":209990,"dctoActual":0,"mgActual":56.5,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"ZAPATILLA ADRIA ARGENTO","tipo":"Zapatillas","skus":"A48109201000136, A48109201000137, A48109201000138, A48109201000139, A48109201000140","stock":7,"precioPubl":169990,"precioNeto":142849,"costoNeto":62000,"margenPct":56.6,"maxDcto":12,"precioActual":135990,"dctoActual":20,"mgActual":45.7,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"ZAPATILLA ADRIA CALVADOS","tipo":"Zapatillas","skus":"A48126104000136, A48126104000137, A48126104000138, A48126104000139, A48126104000140","stock":20,"precioPubl":169990,"precioNeto":142849,"costoNeto":51951,"margenPct":63.6,"maxDcto":26.2,"precioActual":169990,"dctoActual":0,"mgActual":63.6,"weekSales":{"S11":0,"S12":1,"S13":1,"S14":1,"S15":3,"S16":3,"S17":3,"S18":1,"S19":1,"S20":0,"S21":0,"S22":2},"tier":0,"st":0},{"title":"ZAPATILLA ADRIA DIRTY GOLD","tipo":"Zapatillas","skus":"A48126103000136, A48126103000137, A48126103000138, A48126103000139, A48126103000140","stock":23,"precioPubl":169990,"precioNeto":142849,"costoNeto":51951,"margenPct":63.6,"maxDcto":26.2,"precioActual":152990,"dctoActual":10,"mgActual":59.6,"weekSales":{"S11":0,"S12":0,"S13":2,"S14":1,"S15":4,"S16":3,"S17":0,"S18":0,"S19":1,"S20":0,"S21":1,"S22":1},"tier":0,"st":0},{"title":"ZAPATILLA ADRIA DURTY BLACK","tipo":"Zapatillas","skus":"A48109701000136, A48109701000137, A48109701000138, A48109701000139, A48109701000140","stock":8,"precioPubl":169990,"precioNeto":142849,"costoNeto":69064,"margenPct":51.7,"maxDcto":1.9,"precioActual":152990,"dctoActual":10,"mgActual":46.3,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"ZAPATILLA ADRIA ICE","tipo":"Zapatillas","skus":"A48127401000136, A48127401000137, A48127401000138, A48127401000139, A48127401000140","stock":36,"precioPubl":169990,"precioNeto":142849,"costoNeto":51951,"margenPct":63.6,"maxDcto":26.2,"precioActual":152990,"dctoActual":10,"mgActual":59.6,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":1,"S17":0,"S18":1,"S19":2,"S20":1,"S21":0,"S22":0},"tier":0,"st":0},{"title":"ZAPATILLA ADRIA LEOPARDO","tipo":"Zapatillas","skus":"A48126301000136, A48126301000137, A48126301000138, A48126301000139, A48126301000140","stock":18,"precioPubl":169990,"precioNeto":142849,"costoNeto":51951,"margenPct":63.6,"maxDcto":26.2,"precioActual":152990,"dctoActual":10,"mgActual":59.6,"weekSales":{"S11":0,"S12":1,"S13":1,"S14":2,"S15":1,"S16":0,"S17":0,"S18":0,"S19":1,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"ZAPATILLA ADRIA NERO","tipo":"Zapatillas","skus":"A48120104000136, A48120104000137, A48120104000138, A48120104000139, A48120104000140","stock":31,"precioPubl":169990,"precioNeto":142849,"costoNeto":63781,"margenPct":55.4,"maxDcto":9.4,"precioActual":152990,"dctoActual":10,"mgActual":50.4,"weekSales":{"S11":1,"S12":1,"S13":2,"S14":4,"S15":0,"S16":0,"S17":2,"S18":1,"S19":0,"S20":0,"S21":1,"S22":0},"tier":0,"st":0},{"title":"ZAPATILLA ADRIA SILVER","tipo":"Zapatillas","skus":"A48126201000136, A48126201000137, A48126201000138, A48126201000139, A48126201000140","stock":29,"precioPubl":169990,"precioNeto":142849,"costoNeto":51951,"margenPct":63.6,"maxDcto":26.2,"precioActual":152990,"dctoActual":10,"mgActual":59.6,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":1,"S15":1,"S16":1,"S17":1,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"ZAPATILLA ADRIA SMOKE","tipo":"Zapatillas","skus":"A48120203000136, A48120203000137, A48120203000138, A48120203000139, A48120203000140","stock":23,"precioPubl":169990,"precioNeto":142849,"costoNeto":54728,"margenPct":61.7,"maxDcto":22.3,"precioActual":169990,"dctoActual":0,"mgActual":61.7,"weekSales":{"S11":0,"S12":0,"S13":2,"S14":1,"S15":1,"S16":2,"S17":1,"S18":1,"S19":2,"S20":0,"S21":1,"S22":0},"tier":0,"st":0},{"title":"ZAPATILLA AUSSIE ARGENTO","tipo":"Zapatillas","skus":"A48122102000136, A48122102000137, A48122102000138, A48122102000139, A48122102000140","stock":25,"precioPubl":199990,"precioNeto":168059,"costoNeto":70277,"margenPct":58.2,"maxDcto":15.2,"precioActual":139990,"dctoActual":30,"mgActual":40.3,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":2,"S15":1,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":1},"tier":0,"st":0},{"title":"ZAPATILLA AUSSIE OTTONE","tipo":"Zapatillas","skus":"A48122101000136, A48122101000137, A48122101000138, A48122101000139, A48122101000140","stock":14,"precioPubl":199990,"precioNeto":168059,"costoNeto":70277,"margenPct":58.2,"maxDcto":15.2,"precioActual":159990,"dctoActual":20,"mgActual":47.7,"weekSales":{"S11":0,"S12":1,"S13":2,"S14":2,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":1},"tier":0,"st":0},{"title":"ZAPATILLA GOBACK ARGENTO","tipo":"Zapatillas","skus":"C10112101000136, C10112101000137, C10112101000138, C10112101000139, C10112101000140","stock":63,"precioPubl":159990,"precioNeto":134445,"costoNeto":51951,"margenPct":61.4,"maxDcto":21.6,"precioActual":143990,"dctoActual":10,"mgActual":57.1,"weekSales":{"S11":0,"S12":1,"S13":1,"S14":0,"S15":0,"S16":1,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"ZAPATILLA GOBACK BIANCO","tipo":"Zapatillas","skus":"C10102201000136, C10102201000137, C10102201000138, C10102201000139, C10102201000140","stock":20,"precioPubl":159990,"precioNeto":134445,"costoNeto":54296,"margenPct":59.6,"maxDcto":18.1,"precioActual":143990,"dctoActual":10,"mgActual":55.1,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":1,"S18":1,"S19":0,"S20":1,"S21":0,"S22":0},"tier":0,"st":0},{"title":"ZAPATILLA GOBACK CAFFE","tipo":"Zapatillas","skus":"C10113102000136, C10113102000137, C10113102000138, C10113102000139, C10113102000140, C10113102000141","stock":28,"precioPubl":159990,"precioNeto":134445,"costoNeto":54296,"margenPct":59.6,"maxDcto":18.1,"precioActual":143990,"dctoActual":10,"mgActual":55.1,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":1,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":1,"S22":1},"tier":0,"st":0},{"title":"ZAPATILLA GOBACK CALVADOS","tipo":"Zapatillas","skus":"C10113201000136, C10113201000137, C10113201000138, C10113201000139, C10113201000140, C10113201000141","stock":23,"precioPubl":159990,"precioNeto":134445,"costoNeto":51951,"margenPct":61.4,"maxDcto":21.6,"precioActual":159990,"dctoActual":0,"mgActual":61.4,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":2,"S15":4,"S16":1,"S17":0,"S18":1,"S19":4,"S20":1,"S21":1,"S22":0},"tier":0,"st":0},{"title":"ZAPATILLA GOBACK DUST","tipo":"Zapatillas","skus":"C10108101000136, C10108101000137, C10108101000138, C10108101000139, C10108101000140","stock":10,"precioPubl":179990,"precioNeto":151252,"costoNeto":70277,"margenPct":53.5,"maxDcto":5.8,"precioActual":125990,"dctoActual":30,"mgActual":33.6,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"ZAPATILLA GOBACK ICE","tipo":"Zapatillas","skus":"C10111101000136, C10111101000137, C10111101000138, C10111101000139, C10111101000140","stock":56,"precioPubl":159990,"precioNeto":134445,"costoNeto":51951,"margenPct":61.4,"maxDcto":21.6,"precioActual":159990,"dctoActual":0,"mgActual":61.4,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":3,"S16":0,"S17":2,"S18":0,"S19":0,"S20":0,"S21":1,"S22":1},"tier":0,"st":0},{"title":"ZAPATILLA GOBACK LEOPARDO","tipo":"Zapatillas","skus":"C10101403000137, C10101403000138, C10101403000139","stock":11,"precioPubl":179990,"precioNeto":151252,"costoNeto":65365,"margenPct":56.8,"maxDcto":12.3,"precioActual":125990,"dctoActual":30,"mgActual":38.3,"weekSales":{"S11":0,"S12":0,"S13":2,"S14":1,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":1,"S21":0,"S22":1},"tier":0,"st":0},{"title":"ZAPATILLA GOBACK MADERA","tipo":"Zapatillas","skus":"C10113301000136, C10113301000137, C10113301000138, C10113301000139, C10113301000140, C10113301000141","stock":39,"precioPubl":159990,"precioNeto":134445,"costoNeto":51951,"margenPct":61.4,"maxDcto":21.6,"precioActual":143990,"dctoActual":10,"mgActual":57.1,"weekSales":{"S11":0,"S12":0,"S13":1,"S14":1,"S15":2,"S16":2,"S17":2,"S18":1,"S19":1,"S20":1,"S21":1,"S22":2},"tier":0,"st":0},{"title":"ZAPATILLA GOBACK PLATA","tipo":"Zapatillas","skus":"C10107301000136, C10107301000137, C10107301000138, C10107301000139, C10107301000140","stock":8,"precioPubl":179990,"precioNeto":151252,"costoNeto":69479,"margenPct":54.1,"maxDcto":6.8,"precioActual":161990,"dctoActual":10,"mgActual":49,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":2,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"ZAPATILLA HIBACK ICE","tipo":"Zapatillas","skus":"C10205204000136, C10205204000137, C10205204000138, C10205204000139, C10205204000140","stock":3,"precioPubl":199990,"precioNeto":168059,"costoNeto":70277,"margenPct":58.2,"maxDcto":15.2,"precioActual":139990,"dctoActual":30,"mgActual":40.3,"weekSales":{"S11":0,"S12":0,"S13":1,"S14":0,"S15":1,"S16":0,"S17":0,"S18":0,"S19":1,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"ZAPATILLA JET AZUL","tipo":"Zapatillas","skus":"U54103301000140, U54103301000141, U54103301000142, U54103301000143, U54103301000144, U54103301000145, U54103301000146","stock":2,"precioPubl":199990,"precioNeto":168059,"costoNeto":81500,"margenPct":51.5,"maxDcto":1.6,"precioActual":139990,"dctoActual":30,"mgActual":30.7,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"ZAPATILLA JET BEIGE","tipo":"Zapatillas","skus":"U54102102000140, U54102102000141, U54102102000142, U54102102000143, U54102102000144, U54102102000145, U54102102000146","stock":1,"precioPubl":199990,"precioNeto":168059,"costoNeto":81500,"margenPct":51.5,"maxDcto":1.6,"precioActual":139990,"dctoActual":30,"mgActual":30.7,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"ZAPATILLA JET MULTICOLOR","tipo":"Zapatillas","skus":"U54103101648740, U54103101648741, U54103101648742, U54103101648743, U54103101648744, U54103101648745, U54103101648746","stock":4,"precioPubl":199990,"precioNeto":168059,"costoNeto":85000,"margenPct":49.4,"maxDcto":0,"precioActual":139990,"dctoActual":30,"mgActual":27.7,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"ZAPATILLA OASIS PLATA METALIZADA","tipo":"Zapatillas","skus":"B88101666123436, B88101666123437, B88101666123438, B88101666123439, B88101666123440","stock":3,"precioPubl":179990,"precioNeto":151252,"costoNeto":62000,"margenPct":59,"maxDcto":16.9,"precioActual":125990,"dctoActual":30,"mgActual":41.4,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":1,"S22":0},"tier":0,"st":0},{"title":"ZAPATILLA PAUL MOUSE","tipo":"Zapatillas","skus":"655112601000436, 655112601000437, 655112601000438, 655112601000439, 655112601000440","stock":13,"precioPubl":159990,"precioNeto":134445,"costoNeto":40631,"margenPct":69.8,"maxDcto":38.7,"precioActual":111990,"dctoActual":30,"mgActual":56.8,"weekSales":{"S11":0,"S12":0,"S13":1,"S14":0,"S15":1,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":1,"S22":0},"tier":0,"st":0},{"title":"ZAPATILLA PAUL SILVER","tipo":"Zapatillas","skus":"655112202000136, 655112202000137, 655112202000138, 655112202000139, 655112202000140, 655112202000141","stock":4,"precioPubl":159990,"precioNeto":134445,"costoNeto":42500,"margenPct":68.4,"maxDcto":35.9,"precioActual":111990,"dctoActual":30,"mgActual":54.8,"weekSales":{"S11":1,"S12":0,"S13":1,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0},{"title":"ZAPATILLA WHO BLANCO","tipo":"Zapatillas","skus":"738104201000135, 738104201000136, 738104201000137, 738104201000138, 738104201000139, 738104201000140, 738104201000141","stock":1,"precioPubl":169990,"precioNeto":142849,"costoNeto":57000,"margenPct":60.1,"maxDcto":19.1,"precioActual":118990,"dctoActual":30,"mgActual":43,"weekSales":{"S11":0,"S12":0,"S13":0,"S14":0,"S15":0,"S16":0,"S17":0,"S18":0,"S19":0,"S20":0,"S21":0,"S22":0},"tier":0,"st":0}];
+const WEEK_DATA = {"currentWeek":23,"displayWeeks":[{"n":11,"label":"S11","from":"2026-03-09T03:00:00.000Z","to":"2026-03-16T02:59:59.999Z","fromFmt":"09/03/2026","toFmt":"15/03/2026"},{"n":12,"label":"S12","from":"2026-03-16T03:00:00.000Z","to":"2026-03-23T02:59:59.999Z","fromFmt":"16/03/2026","toFmt":"22/03/2026"},{"n":13,"label":"S13","from":"2026-03-23T03:00:00.000Z","to":"2026-03-30T02:59:59.999Z","fromFmt":"23/03/2026","toFmt":"29/03/2026"},{"n":14,"label":"S14","from":"2026-03-30T03:00:00.000Z","to":"2026-04-06T02:59:59.999Z","fromFmt":"30/03/2026","toFmt":"05/04/2026"},{"n":15,"label":"S15","from":"2026-04-06T03:00:00.000Z","to":"2026-04-13T02:59:59.999Z","fromFmt":"05/04/2026","toFmt":"12/04/2026"},{"n":16,"label":"S16","from":"2026-04-13T03:00:00.000Z","to":"2026-04-20T02:59:59.999Z","fromFmt":"12/04/2026","toFmt":"19/04/2026"},{"n":17,"label":"S17","from":"2026-04-20T03:00:00.000Z","to":"2026-04-27T02:59:59.999Z","fromFmt":"19/04/2026","toFmt":"26/04/2026"},{"n":18,"label":"S18","from":"2026-04-27T03:00:00.000Z","to":"2026-05-04T02:59:59.999Z","fromFmt":"26/04/2026","toFmt":"03/05/2026"},{"n":19,"label":"S19","from":"2026-05-04T03:00:00.000Z","to":"2026-05-11T02:59:59.999Z","fromFmt":"03/05/2026","toFmt":"10/05/2026"},{"n":20,"label":"S20","from":"2026-05-11T03:00:00.000Z","to":"2026-05-18T02:59:59.999Z","fromFmt":"10/05/2026","toFmt":"17/05/2026"},{"n":21,"label":"S21","from":"2026-05-18T03:00:00.000Z","to":"2026-05-25T02:59:59.999Z","fromFmt":"17/05/2026","toFmt":"24/05/2026"},{"n":22,"label":"S22","from":"2026-05-25T03:00:00.000Z","to":"2026-06-01T02:59:59.999Z","fromFmt":"24/05/2026","toFmt":"31/05/2026"}]};
+
+const LS_KEY     = 'inseason2026_plan';
+const LS_VER_KEY = 'inseason2026_plan_ver';
+const LS_TS_KEY  = 'inseason2026_plan_ts';
+const PLAN_VER   = '1780320985946';
+
+// ── Display current week ──────────────────────────────────────────────────────
+document.getElementById('s-week').textContent = 'S' + WEEK_DATA.currentWeek;
+
+// ── Build dynamic thead ───────────────────────────────────────────────────────
+var WKS = WEEK_DATA.displayWeeks || [];
+var nWk = WKS.length; // 12 weeks
+// Total cols: 10 (product) + nWk (weeks) + 3 (plan) + 2 (proj) = 10+12+3+2 = 27
+var totalCols = 10 + nWk + 3 + 2;
+
+(function buildThead() {
+  var shRow = '<tr class="sh">'
+    + '<th colspan="10" style="text-align:left">PRODUCTO</th>'
+    + '<th colspan="' + nWk + '" class="wk-hdr" style="text-align:center">VENTAS SEMANALES — últimas ' + nWk + ' semanas completas</th>'
+    + '<th colspan="3" class="pl-hdr" style="text-align:center">PLAN INSEASON</th>'
+    + '<th colspan="2" class="pr-hdr" style="text-align:center">PROYECCIÓN SEMANAL</th>'
+    + '</tr>';
+
+  var weekThs = WKS.map(function(w) {
+    return '<th class="wk-col" title="' + w.fromFmt + ' — ' + w.toFmt + '">' + w.label + '</th>';
+  }).join('');
+
+  var chRow = '<tr class="ch">'
+    + '<th class="l col-prod">Producto</th>'
+    + '<th class="l col-tipo">Tipo</th>'
+    + '<th class="col-stk">Stock</th>'
+    + '<th title="Precio con IVA (compare_at si existe, sino base)">Precio Púb.</th>'
+    + '<th>Precio Neto</th>'
+    + '<th>Costo Neto</th>'
+    + '<th>Margen%</th>'
+    + '<th title="Precio base actual en Shopify (con IVA)">Precio Actual</th>'
+    + '<th title="Descuento activo en Shopify">Dcto Actual</th>'
+    + '<th title="Margen sobre precio actual">Mg% Actual</th>'
+    + weekThs
+    + '<th class="pl-col" style="min-width:100px">Tier</th>'
+    + '<th class="pl-col">ST%</th>'
+    + '<th class="pl-col">Uds Sem.</th>'
+    + '<th class="pr-col" style="min-width:105px">Rev. Semana</th>'
+    + '<th class="pr-col">Mg% Sem.</th>'
+    + '</tr>';
+
+  document.getElementById('thead-top').innerHTML = shRow + chRow;
+
+  // Footer
+  var wkFooterCells = WKS.map(function(w) {
+    return '<td id="f-wk-' + w.label + '" style="color:#4dd0e1;font-weight:700">—</td>';
+  }).join('');
+  var ftCols = '<td class="l col-prod" id="f-lbl">TOTAL VISIBLE</td>'
+    + '<td class="col-tipo"></td>'
+    + '<td class="col-stk" id="f-stk">—</td>'
+    + '<td colspan="7"></td>'
+    + wkFooterCells
+    + '<td colspan="2"></td>'
+    + '<td id="f-upl">—</td>'
+    + '<td id="f-rev">—</td>'
+    + '<td id="f-mp">—</td>';
+  document.getElementById('ftrow').innerHTML = ftCols;
+})();
+
+// ── localStorage ──────────────────────────────────────────────────────────────
+function saveLS() {
+  var snap = {};
+  P.forEach(function(p) { snap[p.title] = { tier: p.tier, st: p.st }; });
+  var now = new Date();
+  var ts = now.toLocaleDateString('es-CL') + ' ' + now.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(snap));
+    localStorage.setItem(LS_VER_KEY, PLAN_VER);
+    localStorage.setItem(LS_TS_KEY, ts);
+  } catch(e) {}
+  document.getElementById('last-edit-ts').textContent = ts;
+}
+function loadLS(arr) {
+  var storedVer, snap, storedTs;
+  try {
+    storedVer = localStorage.getItem(LS_VER_KEY);
+    snap      = JSON.parse(localStorage.getItem(LS_KEY) || 'null');
+    storedTs  = localStorage.getItem(LS_TS_KEY) || '';
+  } catch(e) {}
+  if (!snap || storedVer !== PLAN_VER) return;
+  arr.forEach(function(p) {
+    var s = snap[p.title];
+    if (!s) return;
+    p.tier = s.tier; p.st = s.st;
+  });
+  if (storedTs) document.getElementById('last-edit-ts').textContent = storedTs;
+}
+
+// ── State ─────────────────────────────────────────────────────────────────────
+var P = RAW.map(function(p, i) {
+  return {
+    id: i, title: p.title, tipo: p.tipo, skus: p.skus || '', stock: p.stock,
+    precioPubl: p.precioPubl, precioNeto: p.precioNeto,
+    costoNeto: p.costoNeto, margenPct: p.margenPct, maxDcto: p.maxDcto,
+    precioActual: p.precioActual, dctoActual: p.dctoActual || 0, mgActual: p.mgActual,
+    weekSales: p.weekSales || {},
+    tier: p.tier || 0, st: p.st || 0
+  };
+});
+loadLS(P);
+
+// Populate tipo filter
+var tipos = [];
+P.forEach(function(p) { if (tipos.indexOf(p.tipo) < 0) tipos.push(p.tipo); });
+tipos.sort();
+var tipoEl = document.getElementById('ftipo');
+tipos.forEach(function(t) {
+  var o = document.createElement('option'); o.value = t; o.textContent = t;
+  tipoEl.appendChild(o);
+});
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function clp(n) { return n > 0 ? '$' + Math.round(n).toLocaleString('es-CL') : null; }
+function mpCls(v) { return v === null ? '' : v >= 45 ? 'good' : v >= 35 ? 'mid' : 'low'; }
+function dash(s) { return s || '<span class="dash">—</span>'; }
+
+function tierDcto(t) {
+  if (!t || t === 0) return 0;
+  if (t === 'sd') return 0;
+  return (parseInt(t) || 0) / 100;
+}
+
+function calc(p) {
+  var uds  = (p.tier && p.st > 0) ? Math.floor(p.stock * p.st / 100) : 0;
+  var dcto = tierDcto(p.tier);
+  // Revenue based on Precio Actual (current selling price)
+  var precioNetoActual = p.precioActual / 1.19;
+  var rev  = uds > 0 ? uds * precioNetoActual * (1 - dcto) : 0;
+  var mgn  = (rev > 0 && p.costoNeto > 0) ? rev - uds * p.costoNeto : null;
+  var mgnP = (mgn !== null && rev > 0) ? mgn / rev * 100 : null;
+  return { uds: uds, rev: rev, mgn: mgn, mgnP: mgnP };
+}
+
+function rowClass(p) {
+  if (!p.tier) return 't0';
+  if (p.tier === 'sd') return 'tsd';
+  var n = parseInt(p.tier) || 0;
+  if (n === 50) return 't50';
+  if (n === 40) return 't40';
+  if (n === 30) return 't30';
+  if (n === 20) return 't20';
+  if (n === 15) return 't15';
+  if (n === 10) return 't10';
+  return 't0';
+}
+
+function tierBadge(t) {
+  if (!t || t === 0) return '<span class="badge b-0">—</span>';
+  if (t === 'sd') return '<span class="badge b-sd">Sin Dcto</span>';
+  var n = parseInt(t);
+  var cls = 'b-' + n;
+  return '<span class="badge ' + cls + '">' + n + '%</span>';
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+var visibleIds = P.map(function(p) { return p.id; });
+
+function buildSubtotalRow(tipo, tipoWkTotals, tipoCnt) {
+  var wkCells = WKS.map(function(w) {
+    var t = tipoWkTotals[w.label] || 0;
+    return '<td class="wk-sub">' + (t > 0 ? t : '—') + '</td>';
+  }).join('');
+  return '<tr class="gsubt">'
+    + '<td class="lbl-sub col-prod">Σ ' + tipo.toUpperCase() + ' (' + tipoCnt + ' prod.)</td>'
+    + '<td class="col-tipo"></td>'
+    + '<td class="col-stk"></td>'
+    + '<td colspan="7"></td>'
+    + wkCells
+    + '<td colspan="5"></td>'
+    + '</tr>';
+}
+
+function renderTable() {
+  var vis = P.filter(function(p) { return visibleIds.indexOf(p.id) >= 0; });
+  var html = '', lastTipo = null;
+  var tipoWkTotals = {}, tipoCnt = 0;
+
+  function flushSubtotal() {
+    if (lastTipo !== null) {
+      html += buildSubtotalRow(lastTipo, tipoWkTotals, tipoCnt);
+    }
+    tipoWkTotals = {};
+    WKS.forEach(function(w) { tipoWkTotals[w.label] = 0; });
+    tipoCnt = 0;
+  }
+
+  vis.forEach(function(p) {
+    if (p.tipo !== lastTipo) {
+      flushSubtotal();
+      var cnt = vis.filter(function(x) { return x.tipo === p.tipo; }).length;
+      html += '<tr class="ghdr"><td colspan="' + totalCols + '">&#9670; ' + p.tipo.toUpperCase() + ' &mdash; ' + cnt + ' productos</td></tr>';
+      lastTipo = p.tipo;
+    }
+    // Accumulate weekly totals for this type
+    WKS.forEach(function(w) {
+      tipoWkTotals[w.label] = (tipoWkTotals[w.label] || 0) + ((p.weekSales && p.weekSales[w.label]) || 0);
+    });
+    tipoCnt++;
+
+    var c  = calc(p);
+    var rc = rowClass(p);
+
+    // Precio público
+    var mgStr = p.margenPct !== null
+      ? '<span class="' + mpCls(p.margenPct) + '">' + p.margenPct.toFixed(1) + '%</span>'
+      : '<span class="nocost">S/C</span>';
+
+    // Precio actual y descuento activo
+    var dctoStr = p.dctoActual > 0
+      ? '<span class="dcto-badge">-' + p.dctoActual.toFixed(1) + '%</span>'
+      : '<span class="dcto-none">—</span>';
+    var mgActStr = p.mgActual !== null
+      ? '<span class="' + mpCls(p.mgActual) + '">' + p.mgActual.toFixed(1) + '%</span>'
+      : '<span class="nocost">S/C</span>';
+
+    // Weekly sales cells
+    var wkCells = WKS.map(function(w) {
+      var qty = (p.weekSales && p.weekSales[w.label]) || 0;
+      return '<td class="wk-col">' + (qty > 0 ? '<span class="wk-val">' + qty + '</span>' : '<span class="dash">—</span>') + '</td>';
+    }).join('');
+
+    // Tier select options
+    var tOpts = [
+      ['', '  —  '], ['sd', 'Sin Dcto'], ['10', '10%'],
+      ['15', '15%'], ['20', '20%'], ['30', '30%'], ['40', '40%'], ['50', '50%']
+    ].map(function(o) {
+      var sel = (String(p.tier) === o[0] || (p.tier === 0 && o[0] === '')) ? ' selected' : '';
+      return '<option value="' + o[0] + '"' + sel + '>' + o[1] + '</option>';
+    }).join('');
+
+    // Projected
+    var revStr = c.rev > 0 ? '<span class="rev">' + clp(c.rev) + '</span>' : '<span class="dash">—</span>';
+    var mgnStr = (c.mgnP !== null && c.rev > 0)
+      ? '<span class="' + mpCls(c.mgnP) + '">' + c.mgnP.toFixed(1) + '%</span>'
+      : '<span class="dash">—</span>';
+
+    html += '<tr class="' + rc + '" data-id="' + p.id + '">'
+      + '<td class="l name col-prod">' + p.title + '</td>'
+      + '<td class="l tipo col-tipo">' + p.tipo + '</td>'
+      + '<td class="col-stk"><b>' + p.stock + '</b></td>'
+      + '<td>' + dash(clp(p.precioPubl)) + '</td>'
+      + '<td>' + dash(clp(p.precioNeto)) + '</td>'
+      + '<td>' + (p.costoNeto > 0 ? clp(p.costoNeto) : '<span class="nocost">S/C</span>') + '</td>'
+      + '<td>' + mgStr + '</td>'
+      + '<td><b>' + dash(clp(p.precioActual)) + '</b></td>'
+      + '<td>' + dctoStr + '</td>'
+      + '<td>' + mgActStr + '</td>'
+      + wkCells
+      // Plan
+      + '<td class="pl-col"><select class="tsel" onchange="setTier(' + p.id + ',this.value)">' + tOpts + '</select></td>'
+      + '<td class="pl-col"><input class="sti" type="number" min="0" max="100" value="' + p.st + '" onchange="setST(' + p.id + ',+this.value)"></td>'
+      + '<td class="pl-col">' + (c.uds > 0 ? c.uds : '<span class="dash">—</span>') + '</td>'
+      // Proj
+      + '<td class="pr-col">' + revStr + '</td>'
+      + '<td class="pr-col">' + mgnStr + '</td>'
+      + '</tr>';
+  });
+  // Flush last tipo subtotal
+  flushSubtotal();
+
+  document.getElementById('tbody').innerHTML = html;
+  refreshTotals();
+}
+
+// ── Refresh totals ────────────────────────────────────────────────────────────
+function refreshTotals() {
+  var totR = 0, totM = 0, totU = 0;
+  var byTier = { sd:{r:0,u:0}, 50:{r:0,u:0}, 40:{r:0,u:0}, 30:{r:0,u:0}, 20:{r:0,u:0}, 15:{r:0,u:0}, 10:{r:0,u:0} };
+
+  P.forEach(function(p) {
+    var c = calc(p);
+    totR += c.rev; totU += c.uds;
+    if (c.mgn !== null) totM += c.mgn;
+    var t = p.tier;
+    if (c.rev > 0) {
+      if (t === 'sd')  { byTier.sd.r += c.rev; byTier.sd.u += c.uds; }
+      else if (t === 50 || t === '50') { byTier[50].r += c.rev; byTier[50].u += c.uds; }
+      else if (t === 40) { byTier[40].r += c.rev; byTier[40].u += c.uds; }
+      else if (t === 30) { byTier[30].r += c.rev; byTier[30].u += c.uds; }
+      else if (t === 20) { byTier[20].r += c.rev; byTier[20].u += c.uds; }
+      else if (t === 15) { byTier[15].r += c.rev; byTier[15].u += c.uds; }
+      else if (t === 10) { byTier[10].r += c.rev; byTier[10].u += c.uds; }
+    }
+  });
+
+  var mp = totR > 0 ? totM / totR * 100 : 0;
+  document.getElementById('s-rev').textContent = '$' + (totR / 1e6).toFixed(2) + 'M';
+  document.getElementById('s-mgn').textContent = '$' + (totM / 1e6).toFixed(2) + 'M';
+  document.getElementById('s-mp').textContent  = mp.toFixed(1) + '%';
+  document.getElementById('s-u').textContent   = totU.toLocaleString('es-CL');
+
+  function pill(id, r, u) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    var parts = el.textContent.split('—');
+    el.textContent = parts[0] + '— $' + (r / 1e6).toFixed(2) + 'M | ' + u + 'u';
+  }
+  pill('s-sd', byTier.sd.r, byTier.sd.u);
+  pill('s-50', byTier[50].r, byTier[50].u);
+  pill('s-40', byTier[40].r, byTier[40].u);
+  pill('s-30', byTier[30].r, byTier[30].u);
+  pill('s-20', byTier[20].r, byTier[20].u);
+  pill('s-15', byTier[15].r, byTier[15].u);
+  pill('s-10', byTier[10].r, byTier[10].u);
+
+  // Footer visible
+  var vis = P.filter(function(p) { return visibleIds.indexOf(p.id) >= 0; });
+  var vS = 0, vU = 0, vR = 0, vM = 0;
+  // Weekly totals
+  var wkTotals = {};
+  WKS.forEach(function(w) { wkTotals[w.label] = 0; });
+  vis.forEach(function(p) {
+    vS += p.stock;
+    var c = calc(p);
+    vU += c.uds; vR += c.rev;
+    if (c.mgn !== null) vM += c.mgn;
+    WKS.forEach(function(w) {
+      wkTotals[w.label] += (p.weekSales && p.weekSales[w.label]) || 0;
+    });
+  });
+  var vMp = vR > 0 ? vM / vR * 100 : 0;
+  var lbl = document.getElementById('f-lbl');
+  var stk = document.getElementById('f-stk');
+  var upl = document.getElementById('f-upl');
+  var rev = document.getElementById('f-rev');
+  var fmp = document.getElementById('f-mp');
+  if (lbl) lbl.textContent = 'TOTAL (' + vis.length + ' productos)';
+  if (stk) stk.textContent = vS.toLocaleString('es-CL');
+  if (upl) upl.textContent = vU > 0 ? vU : '—';
+  if (rev) rev.textContent = vR > 0 ? '$' + Math.round(vR).toLocaleString('es-CL') : '—';
+  if (fmp) fmp.textContent = vMp > 0 ? vMp.toFixed(1) + '%' : '—';
+  // Update weekly footer cells
+  WKS.forEach(function(w) {
+    var el = document.getElementById('f-wk-' + w.label);
+    if (el) el.textContent = wkTotals[w.label] > 0 ? wkTotals[w.label] : '—';
+  });
+}
+
+// ── Update single row ─────────────────────────────────────────────────────────
+// Cols: 0-9 product, 10..10+nWk-1 weeks, 10+nWk: tier, 10+nWk+1: st, 10+nWk+2: uds, 10+nWk+3: rev, 10+nWk+4: mgp
+function updateRow(id) {
+  var p  = P[id];
+  var c  = calc(p);
+  var tr = document.querySelector('tr[data-id="' + id + '"]');
+  if (!tr) { refreshTotals(); return; }
+  tr.className = rowClass(p);
+  var sel = tr.querySelector('select.tsel');
+  if (sel) sel.value = String(p.tier || '');
+  var tds = tr.querySelectorAll('td');
+  var udsIdx = 10 + nWk + 2;
+  var revIdx = 10 + nWk + 3;
+  var mpIdx  = 10 + nWk + 4;
+  tds[udsIdx].innerHTML = c.uds > 0 ? c.uds : '<span class="dash">—</span>';
+  tds[revIdx].innerHTML = c.rev > 0 ? '<span class="rev">' + clp(c.rev) + '</span>' : '<span class="dash">—</span>';
+  tds[mpIdx].innerHTML  = (c.mgnP !== null && c.rev > 0)
+    ? '<span class="' + mpCls(c.mgnP) + '">' + c.mgnP.toFixed(1) + '%</span>'
+    : '<span class="dash">—</span>';
+  refreshTotals();
+}
+
+// ── Event handlers ────────────────────────────────────────────────────────────
+function setTier(id, val) {
+  var p = P[id];
+  p.tier = val === '' ? 0 : (val === 'sd' ? 'sd' : parseInt(val));
+  if (p.tier && p.st === 0) {
+    var n = typeof p.tier === 'number' ? p.tier : 0;
+    if (n >= 40) p.st = 50;
+    else if (n === 30) p.st = 40;
+    else if (n === 20) p.st = 15;
+    else if (n === 15) p.st = 12;
+    else p.st = 10;
+  } else if (!p.tier) {
+    p.st = 0;
+  }
+  saveLS();
+  setTimeout(function() { updateRow(id); }, 0);
+}
+function setST(id, val) {
+  P[id].st = Math.min(100, Math.max(0, val || 0));
+  saveLS();
+  setTimeout(function() { updateRow(id); }, 0);
+}
+
+// ── Filters ───────────────────────────────────────────────────────────────────
+function applyFilters() {
+  var s   = document.getElementById('search').value.toLowerCase();
+  var ft  = document.getElementById('ftipo').value;
+  var fi  = document.getElementById('ftier').value;
+  var fs  = parseInt(document.getElementById('fstock').value) || 0;
+  var fd  = document.getElementById('fdcto').value;
+  visibleIds = P.filter(function(p) {
+    var matchTier = !fi
+      || (fi === '0'  && !p.tier)
+      || (fi === 'sd' && p.tier === 'sd')
+      || (fi === '10' && p.tier === 10)
+      || (fi === '15' && p.tier === 15)
+      || (fi === '20' && p.tier === 20)
+      || (fi === '30' && p.tier === 30)
+      || (fi === '40' && p.tier === 40)
+      || (fi === '50' && p.tier === 50);
+    var matchDcto = !fd
+      || (fd === 'nodcto'  && p.dctoActual === 0)
+      || (fd === 'condcto' && p.dctoActual > 0);
+    return (!s  || p.title.toLowerCase().indexOf(s) >= 0)
+        && (!ft || p.tipo === ft)
+        && matchTier && matchDcto
+        && (p.stock >= fs);
+  }).map(function(p) { return p.id; });
+  renderTable();
+}
+
+// ── Bulk actions ──────────────────────────────────────────────────────────────
+function bulkST() {
+  var tier = prompt('Tier a modificar (sd, 10, 15, 20, 30, 40, 50):');
+  if (!tier) return;
+  var st = prompt('Sell-through % para tier "' + tier + '":');
+  if (st === null) return;
+  var stVal = Math.min(100, Math.max(0, parseFloat(st) || 0));
+  P.forEach(function(p) {
+    if (tier === 'sd' && p.tier === 'sd') p.st = stVal;
+    else if (parseInt(tier) === p.tier) p.st = stVal;
+  });
+  saveLS(); renderTable();
+}
+function clearAll() {
+  if (!confirm('Limpiar TODOS los tiers y sell-throughs?')) return;
+  P.forEach(function(p) { p.tier = 0; p.st = 0; });
+  try { localStorage.removeItem(LS_KEY); } catch(e) {}
+  renderTable();
+}
+
+// ── Export CSV ────────────────────────────────────────────────────────────────
+function exportCSV() {
+  var wkHeaders = WKS.map(function(w) { return w.label; }).join(',');
+  var lines = ['"Producto","Tipo",Stock,PrecioPubl,PrecioNeto,CostoNeto,Margen%,PrecioActual,DctoActual%,MgActual%,' + wkHeaders + ',Tier,ST%,UdsSemana,RevSemana,MgSemana%'];
+  P.forEach(function(p) {
+    var c = calc(p);
+    var wkVals = WKS.map(function(w) { return (p.weekSales && p.weekSales[w.label]) || 0; }).join(',');
+    lines.push([
+      '"' + p.title + '"', '"' + p.tipo + '"', p.stock,
+      p.precioPubl, p.precioNeto, p.costoNeto,
+      p.margenPct !== null ? p.margenPct : '',
+      p.precioActual, p.dctoActual, p.mgActual !== null ? p.mgActual : '',
+      wkVals,
+      p.tier || '', p.st, c.uds,
+      c.rev > 0 ? Math.round(c.rev) : '',
+      c.mgnP !== null ? c.mgnP.toFixed(1) : ''
+    ].join(','));
+  });
+  var blob = new Blob(['﻿' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'inseason_plan.csv'; a.click();
+}
+
+// ── Export XLSX ───────────────────────────────────────────────────────────────
+function exportXLSX() {
+  var rows = P.filter(function(p) { return p.tier && (p.tier === 'sd' || typeof p.tier === 'number'); });
+  if (!rows.length) { alert('No hay productos con Tier asignado.'); return; }
+  var header = ['Producto', 'SKU', 'Tipo', 'Precio Público', 'Precio Actual', 'Descuento Actual %', 'Descuento Tier %', 'Precio con Tier'];
+  var wsData = [['Descuentos Inseason 2026 — Semana S' + WEEK_DATA.currentWeek], [], header];
+  rows.forEach(function(p) {
+    var dctoTier = (p.tier === 'sd' || !p.tier) ? 0 : (parseInt(p.tier) || 0);
+    var precioTier = Math.floor(p.precioActual * (1 - dctoTier / 100) / 10) * 10;
+    wsData.push([
+      p.title, p.skus || '', p.tipo,
+      p.precioPubl, p.precioActual,
+      p.dctoActual / 100, dctoTier / 100, precioTier
+    ]);
+  });
+
+  var ws = XLSX.utils.aoa_to_sheet(wsData);
+  // Format header row
+  ws['!cols'] = [
+    {wch:35},{wch:20},{wch:12},{wch:14},{wch:14},{wch:16},{wch:16},{wch:16}
+  ];
+  // Number formats
+  var numFmt = { numFmtId: 164, formatCode: '$#,##0' };
+  var pctFmt = { numFmtId: 165, formatCode: '0.0%' };
+  rows.forEach(function(_, i) {
+    var r = i + 4; // row 1 title, 2 blank, 3 header, 4+
+    ['D','E'].forEach(function(col) {
+      var cell = ws[col + r];
+      if (cell) { cell.t = 'n'; cell.z = '$#,##0'; }
+    });
+    ['F','G'].forEach(function(col) {
+      var cell = ws[col + r];
+      if (cell) { cell.t = 'n'; cell.z = '0.0%'; }
+    });
+  });
+
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Inseason S' + WEEK_DATA.currentWeek);
+  XLSX.writeFile(wb, 'Descuentos_Inseason2026.xlsx');
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+renderTable();
+</script>
+</body>
+</html>
